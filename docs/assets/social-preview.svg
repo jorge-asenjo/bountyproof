@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="t">
+  <title id="t">bountyproof: the bug bounty agent that won't report what it can't prove</title>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#18202c" stroke-width="1"/>
+    </pattern>
+    <style>
+      .sans { font-family: ui-sans-serif, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    </style>
+  </defs>
+  <rect width="1280" height="640" fill="#0d1117"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+
+  <text x="96" y="250" class="sans" font-size="104" font-weight="800" fill="#e6edf3" letter-spacing="-2">bounty<tspan fill="#d97757">proof</tspan></text>
+  <text x="100" y="322" class="sans" font-size="36" fill="#c9d1d9">The bug bounty agent that won't report</text>
+  <text x="100" y="368" class="sans" font-size="36" fill="#c9d1d9">what it can't prove.</text>
+
+  <g class="mono" font-size="20">
+    <rect x="100" y="430" width="250" height="44" rx="10" fill="#13213a" stroke="#3b82f6"/>
+    <text x="225" y="459" fill="#b8cdee" text-anchor="middle">separate agents</text>
+    <rect x="366" y="430" width="226" height="44" rx="10" fill="#2a1a12" stroke="#d97757"/>
+    <text x="479" y="459" fill="#f3b498" text-anchor="middle">evidence judge</text>
+    <rect x="608" y="430" width="250" height="44" rx="10" fill="#1d1216" stroke="#b4454f"/>
+    <text x="733" y="459" fill="#ffadb2" text-anchor="middle">scope by code</text>
+    <rect x="874" y="430" width="236" height="44" rx="10" fill="#11261a" stroke="#22c55e"/>
+    <text x="992" y="459" fill="#7fe0a3" text-anchor="middle">human submits</text>
+  </g>
+
+  <text x="100" y="560" class="mono" font-size="22" fill="#7d8a9c">Claude Code plugin + CLI · MIT · github.com/jorge-asenjo/bountyproof</text>
+</svg>

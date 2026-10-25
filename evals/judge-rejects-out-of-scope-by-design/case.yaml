@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: judge-rejects-out-of-scope-by-design
+tags: [judge, scope]
+expected_outcome: "reject"
+context:
+  scaffold_script: scaffold.sh

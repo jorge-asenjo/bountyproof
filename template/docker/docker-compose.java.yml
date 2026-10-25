@@ -1,0 +1,15 @@
+services:
+  app:
+    image: TO_FILL
+    container_name: bounty-lab
+    ports:
+      - "8080:8080"
+    volumes:
+      - app_data:/app/data
+      - ./init-scripts:/docker-entrypoint-init.d:ro
+    environment:
+      - JAVA_OPTS=-Xmx512m
+    restart: unless-stopped
+
+volumes:
+  app_data:

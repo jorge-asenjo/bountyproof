@@ -1,0 +1,14 @@
+{
+  "_comment": "Demo lab scope: the only target is the local Juice Shop. Every other host is unknown to the guard and therefore denied.",
+  "enforce": true,
+  "inScope": ["localhost", "127.0.0.1"],
+  "outOfScope": [],
+  "denyUnlisted": [],
+  "uaTag": "bountyproof-lab",
+  "requiredHeaders": [],
+  "confirmStateChanging": false,
+  "requireConfirm": false,
+  "confirmedScope": "",
+  "allowHosts": [],
+  "hunterInfra": []
+}

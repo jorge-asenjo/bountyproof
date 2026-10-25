@@ -1,0 +1,23 @@
+{
+  "_comment": "Machine-readable scope for .claude/hooks/scope-guard.mjs. FILL IN PHASE 0 from notes/program-rules.md. Until inScope has at least one entry the guard is inactive. Patterns: exact host ('api.acme.com'), any-depth subdomain wildcard ('*.acme.com' — does NOT include the apex, list it too), or IPv4 CIDR ('203.0.113.0/24'). outOfScope always wins over inScope. WHITE-BOX: inScope = the lab hosts (localhost is already allowed), and put the program's production domains in outOfScope (lab-only rule).",
+  "enforce": true,
+  "inScope": [],
+  "outOfScope": [],
+  "_outOfScope_note": "Include registration-only hosts (used to create accounts, not to test), sister brands, third-party SaaS the target uses, and staging hosts the program didn't list.",
+  "denyUnlisted": [],
+  "_denyUnlisted_note": "Domains whose UNLISTED hosts are out of scope, e.g. ['acme.com', '*.acme.com'] when the program says 'any acme.com host not listed is OOS'. Unlike outOfScope, it doesn't override inScope entries. Paths aren't checked: a host-level scope like 'acme.com/portal' must be respected by hand.",
+  "uaTag": "",
+  "_uaTag_note": "Exact string every curl/iwr to an in-scope host must carry (e.g. 'BugBounty-yourhandle'). Leave empty if the program doesn't require one.",
+  "requiredHeaders": [],
+  "_requiredHeaders_note": "Strings that must appear in every request to an in-scope host, e.g. 'X-Bug-Bounty: yourhandle'.",
+  "confirmStateChanging": false,
+  "_confirmStateChanging_note": "true = ask before POST/PUT/PATCH/DELETE or a request with a body against a live in-scope host (GraphQL queries without 'mutation' don't count).",
+  "requireConfirm": false,
+  "_requireConfirm_note": "true = the guard blocks ALL live testing of in-scope hosts until the current scope is confirmed. After editing inScope/outOfScope/denyUnlisted, review them and run 'bountyproof scope confirm' (or tools/scripts/confirm-scope.ps1) to re-confirm. Any edit invalidates the previous confirmation (ZeroProtocol pattern: widening scope clears it automatically). Leave false for white-box lab-only work.",
+  "confirmedScope": "",
+  "_confirmedScope_note": "SHA-256 of the confirmed inScope/outOfScope/denyUnlisted set. Written by 'bountyproof scope confirm' / confirm-scope.ps1 — do NOT edit by hand. When it no longer matches the current scope and requireConfirm=true, the guard denies in-scope requests.",
+  "allowHosts": [],
+  "_allowHosts_note": "Non-target hosts you legitimately hit with curl (docs, CDNs for tooling). Platform sites, GitHub, npm/pypi, crt.sh and localhost are allowed by default.",
+  "hunterInfra": [],
+  "_hunterInfra_note": "Your own out-of-band endpoints (interactsh/webhook host, your VPS) used as the attacker-controlled side of a PoC."
+}

@@ -1,0 +1,9 @@
+services:
+  app:
+    image: TO_FILL
+    container_name: bounty-lab
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes: {}

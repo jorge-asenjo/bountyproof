@@ -1,0 +1,10 @@
+# Browser session material — cookies/tokens, treat as secrets. Never commit.
+tools/browser/profile/
+poc/browser-output/
+poc/session-*.txt
+poc/*.cookies
+.codex/
+.gemini/
+
+# Egress log from the scope-guard hook: target URLs (secrets redacted, but still private).
+notes/egress-log.jsonl

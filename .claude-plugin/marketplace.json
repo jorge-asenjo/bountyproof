@@ -1,0 +1,15 @@
+{
+  "name": "bountyproof",
+  "description": "The bug bounty agent that won't report what it can't prove.",
+  "owner": {
+    "name": "Jorge Asenjo",
+    "url": "https://github.com/jorge-asenjo"
+  },
+  "plugins": [
+    {
+      "name": "bountyproof",
+      "source": "./",
+      "description": "Evidence-gated, scope-enforced agent harness for bug bounty work."
+    }
+  ]
+}

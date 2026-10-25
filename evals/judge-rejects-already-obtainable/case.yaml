@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: judge-rejects-already-obtainable
+tags: [judge, slop]
+expected_outcome: "reject"
+context:
+  scaffold_script: scaffold.sh

@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bountyproof"
+dynamic = ["version"]
+description = "Evidence-gated, scope-enforced agent harness for bug bounty work, built on Claude Code."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Jorge Asenjo" }]
+keywords = ["bug-bounty", "security", "agents", "claude-code", "llm", "guardrails", "evals"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/jorge-asenjo/bountyproof"
+Issues = "https://github.com/jorge-asenjo/bountyproof/issues"
+
+[project.scripts]
+bountyproof = "bountyproof.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.hatch.version]
+path = "src/bountyproof/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bountyproof"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"template" = "bountyproof/_assets/template"
+"prompts" = "bountyproof/_assets/prompts"
+"reference" = "bountyproof/_assets/reference"
+"hooks/scope-guard.mjs" = "bountyproof/_assets/hooks/scope-guard.mjs"
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "template", "prompts", "reference", "hooks", "tests", "README.md", "LICENSE"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

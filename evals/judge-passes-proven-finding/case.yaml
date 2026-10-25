@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: judge-passes-proven-finding
+tags: [judge, control]
+expected_outcome: "pass"
+context:
+  scaffold_script: scaffold.sh

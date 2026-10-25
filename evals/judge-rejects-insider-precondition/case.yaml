@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: judge-rejects-insider-precondition
+tags: [judge, threat-model]
+expected_outcome: "reject"
+context:
+  scaffold_script: scaffold.sh

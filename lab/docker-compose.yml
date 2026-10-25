@@ -1,0 +1,9 @@
+# OWASP Juice Shop: an intentionally vulnerable web app for practice.
+# Bound to 127.0.0.1 only, so it is never reachable from your network.
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:v20.3.0
+    container_name: bountyproof-lab
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: "no"

@@ -1,0 +1,18 @@
+{
+  "_comment": "Playwright MCP: lets the Claude session DRIVE a real Chrome (navigate, click, fill, read network + console) so the user only does login/captcha/2FA. Persistent profile = log in once. EDIT per program: (1) append the program's required UA tag if any (e.g. 'BugBounty/42 (YWH)'); (2) put OOS hosts in --blocked-origins. Restart Claude Code after editing. Profile dir holds session cookies — keep it gitignored.",
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y", "@playwright/mcp@latest",
+        "--browser", "chrome",
+        "--user-data-dir", "./tools/browser/profile",
+        "--output-dir", "./poc/browser-output",
+        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+        "--save-session",
+        "--block-service-workers",
+        "--blocked-origins", ""
+      ]
+    }
+  }
+}

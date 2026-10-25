@@ -1,0 +1,27 @@
+name: Bug report
+description: Something in the CLI, the plugin or the scope guard doesn't work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please don't include real program names, targets, credentials or vulnerability details.
+        Use example.com and placeholders. Scope-guard bypasses go to private vulnerability reporting (see SECURITY.md).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Commands you ran, and the scope.json (sanitized) if the scope guard is involved.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `bountyproof --version`, `claude --version`, `node --version`, and your OS.

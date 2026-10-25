@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+uv.lock
+
+# Engagement material must never land here
+engagements/
+**/notes/egress-log.jsonl
+**/tools/browser/profile/
+**/poc/browser-output/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+evals/results/

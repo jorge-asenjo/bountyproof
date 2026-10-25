@@ -1,0 +1,14 @@
+{
+  "name": "bountyproof",
+  "displayName": "bountyproof",
+  "version": "0.1.0",
+  "description": "Evidence-gated, scope-enforced agent harness for bug bounty: separate discovery and validation agents, an evidence judge before any report, and a hook that keeps every request in scope.",
+  "author": {
+    "name": "Jorge Asenjo",
+    "url": "https://github.com/jorge-asenjo"
+  },
+  "homepage": "https://github.com/jorge-asenjo/bountyproof",
+  "repository": "https://github.com/jorge-asenjo/bountyproof",
+  "license": "MIT",
+  "keywords": ["security", "bug-bounty", "agents", "multi-agent", "guardrails", "evals", "hooks"]
+}

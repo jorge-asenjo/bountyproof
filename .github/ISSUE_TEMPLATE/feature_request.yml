@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an improvement to the harness, prompts, guard or CLI.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What do you have in mind?
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Core contract
+      options:
+        - label: This keeps discovery separate from validation, keeps the judge in front of reports, and keeps the human as the one who submits.
+          required: true
