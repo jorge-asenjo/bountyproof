@@ -160,10 +160,10 @@ CASES = {
             "| H-001 | 20 parallel redeems | single redeem | looked like 2 applied | (none) |",
         ),
     ),
-    "judge-passes-proven-finding": dict(
-        expect="pass",
-        tags=["judge", "control"],
-        desc="A cross-account read proven between two test accounts with controls. Should PASS.",
+    "judge-needs-validation-cited-artifact-missing": dict(
+        expect="needs_validation",
+        tags=["judge", "evidence"],
+        desc="A convincing dossier whose cited evidence files don't exist in the workspace.",
         file=case_file(
             "- Orders are fetched with GET /api/orders/{id}. Order IDs are sequential integers and appear on\n"
             "  order confirmation pages.",
@@ -186,6 +186,81 @@ CASES = {
             "| B's data returned to A | poc/h001-a-reads-b.txt |",
         ),
     ),
+    "judge-passes-proven-finding": dict(
+        expect="pass",
+        tags=["judge", "control"],
+        desc="A cross-account read proven between two test accounts, with controls and saved artifacts. Should PASS.",
+        file=case_file(
+            "- Orders are fetched with GET /api/orders/{id}. Order IDs are sequential integers and appear on\n"
+            "  order confirmation pages.",
+            "| H-001 | authz | orders API | account | high | confirmed |",
+            """### H-001 - Cross-account order read on GET /api/orders/{id}
+- Affected asset / trust boundary: api.example.com (UNTRUSTED), between customer accounts
+- Preconditions: attacker has any customer account; no other privilege
+- Attacker control of input: the order ID in the path
+- Attacker control of resource/object: order IDs are sequential, so other customers' IDs are predictable
+- Expected observation if vulnerable: account A receives account B's order details
+- Best benign alternative explanation: the API returns only the caller's own orders, or an error
+- Validation result + artifacts (both accounts are the researcher's own test accounts):
+  - Negative controls: poc/h001-controls.txt (A reads own order 1001: 200; anonymous on 1002: 401;
+    B reads own order 1002: 200 with "Test User B")
+  - Discriminating test: poc/h001-a-reads-b.txt (A's session reads 1002: 200 with "Test User B" and
+    B's test address; reproduced twice)
+- Status: confirmed""",
+            "| H-001 | A reads B's order 1002 | poc/h001-controls.txt "
+            "| B's data returned to A | poc/h001-a-reads-b.txt |",
+        ),
+        extra={
+            "poc/h001-controls.txt": """# Control 1 - 2026-10-20T10:12:51Z - session: account A
+GET /api/orders/1001 HTTP/1.1
+Host: api.example.com
+User-Agent: Mozilla/5.0 BugBounty-evals
+Cookie: session=<account A, redacted>
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1001,"customer":"Test User A","shipping_address":"1 Sample Road, Testville"}
+
+# Control 2 - 2026-10-20T10:13:20Z - no session
+GET /api/orders/1002 HTTP/1.1
+Host: api.example.com
+User-Agent: Mozilla/5.0 BugBounty-evals
+
+HTTP/1.1 401 Unauthorized
+
+# Control 3 - 2026-10-20T10:13:44Z - session: account B
+GET /api/orders/1002 HTTP/1.1
+Host: api.example.com
+User-Agent: Mozilla/5.0 BugBounty-evals
+Cookie: session=<account B, redacted>
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1002,"customer":"Test User B","shipping_address":"12 Example Street, Testville"}
+""",
+            "poc/h001-a-reads-b.txt": """# Test - 2026-10-20T10:14:03Z - session: account A (same cookie as control 1)
+GET /api/orders/1002 HTTP/1.1
+Host: api.example.com
+User-Agent: Mozilla/5.0 BugBounty-evals
+Cookie: session=<account A, redacted>
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1002,"customer":"Test User B","shipping_address":"12 Example Street, Testville"}
+
+# Reproduced - 2026-10-20T10:16:40Z - same session, same request, same response body
+""",
+        },
+    ),
+}
+
+# Real workspaces carry these reference docs; the judge reads them, so every fixture gets a copy.
+REFERENCE = {
+    f"reference/{name}": (Path(__file__).resolve().parent.parent / "reference" / name).read_text(encoding="utf-8")
+    for name in ("vuln-class-gotchas.md", "cvss-cheat-sheet.md")
 }
 
 PROMPT = """---
@@ -220,12 +295,15 @@ def write(path, text):
 for name, c in CASES.items():
     d = ROOT / name
     script = "#!/usr/bin/env bash\n# Seeds the fictional engagement workspace for this case.\nset -euo pipefail\n"
-    for rel, text in (
-        ("notes/program-rules.md", RULES),
-        ("notes/threat-model.md", THREAT),
-        ("notes/scope.json", SCOPE),
-        ("notes/case-file.md", c["file"]),
-    ):
+    files = {
+        "notes/program-rules.md": RULES,
+        "notes/threat-model.md": THREAT,
+        "notes/scope.json": SCOPE,
+        "notes/case-file.md": c["file"],
+        **REFERENCE,
+        **c.get("extra", {}),
+    }
+    for rel, text in files.items():
         script += heredoc(rel, text)
     write(d / "scaffold.sh", script)
     write(

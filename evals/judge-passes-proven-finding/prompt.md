@@ -1,5 +1,5 @@
 ---
-description: A cross-account read proven between two test accounts with controls. Should PASS.
+description: A cross-account read proven between two test accounts, with controls and saved artifacts. Should PASS.
 max_turns: 20
 timeout_seconds: 600
 allowed_tools: [Read, Glob, Grep, Agent]

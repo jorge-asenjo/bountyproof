@@ -127,10 +127,27 @@ routing around it. It fails open on internal errors so a bug can't brick a sessi
 ## Evals
 
 [`evals/`](evals/) holds a seed benchmark for the evidence judge, run with Claude Code's native
-`claude plugin eval`. Five cases are the classic ways reports get closed for nothing (reachability
-without impact, data the role can already see, an excluded asset, an insider precondition, a missing
-artifact) and one is a properly proven finding that must pass. The runner repeats every case with and
-without the plugin, so the difference is what the judge adds.
+`claude plugin eval`. Each case seeds a fictional engagement and asks for a verdict on one finding; the
+runner repeats it with and without the plugin, so the difference is what the judge adds over the same
+model on its own.
+
+First results (Claude Code 2.1.310, `--model opus`, 3 runs per arm, 2026-10-26):
+
+| Case | Expected | With plugin | Without | Δ |
+|---|---|---|---|---|
+| Cited evidence files don't exist in the workspace | NEEDS_VALIDATION | 1.00 | 0.00 | **+1.00** |
+| Properly proven cross-account read, artifacts saved | PASS | 1.00 | 1.00 | 0.00 |
+| Reachability only (200 status, no foreign data) | not PASS | 1.00 | 1.00 | 0.00 |
+| Data the role already sees in the UI | not PASS | 1.00 | 1.00 | 0.00 |
+| Solid finding on an asset excluded by design | not PASS | 1.00 | 1.00 | 0.00 |
+| Needs a trusted insider (staff console) | not PASS | 1.00 | 1.00 | 0.00 |
+| Plausible race, no artifact captured | NEEDS_VALIDATION | 1.00 | 1.00 | 0.00 |
+
+What this says, and what it doesn't: a strong model already rejects the classic slop patterns when
+they're spelled out in the case file. Where the judge made the difference was checking that the
+evidence a dossier cites actually exists: without the plugin, the model passed a convincing finding
+whose saved requests and responses were nowhere in the workspace, three times out of three. Seven
+cases is a seed, not a benchmark; harder cases and smaller models are next.
 
 ```bash
 claude plugin eval . --scaffold --trust-plugin

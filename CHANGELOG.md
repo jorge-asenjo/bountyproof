@@ -12,3 +12,4 @@ First public release.
   defers to the workspace copy.
 - Radar: GitHub Actions templates that watch platforms and score new programs.
 - Demo lab with OWASP Juice Shop.
+- Seed eval suite for the evidence judge (7 cases) with first results in the README.
