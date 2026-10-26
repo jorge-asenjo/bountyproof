@@ -43,9 +43,10 @@ packages = ["src/bountyproof"]
 "prompts" = "bountyproof/_assets/prompts"
 "reference" = "bountyproof/_assets/reference"
 "hooks/scope-guard.mjs" = "bountyproof/_assets/hooks/scope-guard.mjs"
+"radar" = "bountyproof/_assets/radar"
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "template", "prompts", "reference", "hooks", "tests", "README.md", "LICENSE"]
+include = ["src", "template", "prompts", "reference", "hooks", "radar", "tests", "README.md", "LICENSE"]
 
 [tool.ruff]
 line-length = 120

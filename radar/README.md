@@ -34,6 +34,11 @@ of each UTC day does the Intigriti and HackerOne scope pass. Every workflow also
 
 ## Setup
 
+**The quick way:** run `bountyproof onboard`, then `bountyproof radar init`. It writes the workflows
+for the platforms you're on, fills *Your hunter profile* in `fit-score.md` from your answers, and with
+the GitHub CLI (`gh auth login`) creates the private repo, sets the secrets, picks a private ntfy
+topic and sends a test alert to your phone. The steps below are the same thing by hand.
+
 1. **Create a private repository.** Don't use the Fork button: GitHub forks of a public repository
    stay public, and your state files shouldn't be (see [Privacy](#privacy)).
 2. **Copy Radar into it.** The workflows expect this layout:

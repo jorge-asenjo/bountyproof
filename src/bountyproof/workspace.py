@@ -44,7 +44,7 @@ def slugify(text: str) -> str:
     return slug
 
 
-def create(eng: Engagement, parent: Path, init_git: bool = True) -> Path:
+def create(eng: Engagement, parent: Path, init_git: bool = True, hunter_profile: str | None = None) -> Path:
     if eng.platform not in PLATFORMS:
         raise WorkspaceError(f"Unknown platform {eng.platform!r}. Use one of: {', '.join(PLATFORMS)}.")
     if eng.mode not in MODES:
@@ -94,6 +94,8 @@ def create(eng: Engagement, parent: Path, init_git: bool = True) -> Path:
     hooks.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src / "hooks" / "scope-guard.mjs", hooks / "scope-guard.mjs")
     (dest / "reports").mkdir(exist_ok=True)
+    if hunter_profile:
+        (dest / "notes" / "hunter-profile.md").write_text(hunter_profile, encoding="utf-8")
 
     if init_git:
         _git_init(dest, eng)

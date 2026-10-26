@@ -41,6 +41,10 @@ Inside Claude Code:
 
 Then open Claude Code in the new workspace and run `/bountyproof:setup <program URL>`.
 
+First time? `bountyproof onboard` checks your machine (tools, Docker, phones over USB), asks which
+platforms you're on and what you can test with, and saves a profile every new workspace plans with.
+It ends by offering phone alerts for new programs that fit you (`bountyproof radar init`).
+
 Prefer a terminal? The CLI has no dependencies:
 
 ```bash

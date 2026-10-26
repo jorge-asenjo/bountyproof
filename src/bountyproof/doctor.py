@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import sys
 
+from bountyproof import profile
+
 # (command, required, why)
 TOOLS = [
     ("claude", True, "Claude Code runs the agents"),
@@ -43,4 +45,6 @@ def run() -> int:
         plugin = "ok" if "bountyproof" in listed else "optional"
         hint = "installed" if plugin == "ok" else "/plugin marketplace add jorge-asenjo/bountyproof"
         print(f"  {plugin:<8} {'bountyproof plugin':<21} {hint}")
+    if profile.load() is None:
+        print("\nNo hunter profile yet: run `bountyproof onboard` to set up accounts, devices and alerts.")
     return 1 if missing_required else 0

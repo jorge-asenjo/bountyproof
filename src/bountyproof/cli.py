@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from bountyproof import __version__, doctor, funnel, scope, workspace
+from bountyproof import __version__, doctor, funnel, onboard, profile, radar, scope, workspace
 from bountyproof.assets import AssetsNotFound
 
 EXIT_DENY = 2
@@ -22,9 +22,21 @@ def _find_workspace(start: Path) -> Path:
     raise scope.ScopeError("Not inside an engagement workspace (no notes/scope.json found).")
 
 
+def _create(args: argparse.Namespace) -> tuple[workspace.Engagement, Path]:
+    """Create the workspace, taking the folder, platform and hunter notes from the profile if there is one."""
+    prof = profile.load()
+    platform = args.platform
+    if platform is None:
+        platform = next(iter(prof.platforms)) if prof and len(prof.platforms) == 1 else "hackerone"
+    parent = Path(args.dir or (prof.workspaces_dir if prof and prof.workspaces_dir else "."))
+    parent.mkdir(parents=True, exist_ok=True)
+    eng = workspace.Engagement(args.name, platform, args.mode, args.stack)
+    notes = profile.hunter_notes(prof) if prof else None
+    return eng, workspace.create(eng, parent, init_git=not args.no_git, hunter_profile=notes)
+
+
 def cmd_new(args: argparse.Namespace) -> int:
-    eng = workspace.Engagement(args.name, args.platform, args.mode, args.stack)
-    dest = workspace.create(eng, Path(args.dir), init_git=not args.no_git)
+    eng, dest = _create(args)
     print(f"Created {dest}  (mode={eng.mode}, platform={eng.platform_name})")
     print("Keep this workspace's git history local: never push a private-program workspace.")
     print("\nNext:")
@@ -38,8 +50,7 @@ def cmd_new(args: argparse.Namespace) -> int:
 
 
 def cmd_start(args: argparse.Namespace) -> int:
-    eng = workspace.Engagement(args.name, args.platform, args.mode, args.stack)
-    dest = workspace.create(eng, Path(args.dir), init_git=not args.no_git)
+    eng, dest = _create(args)
     prompt = "Run Phase 0 (prompts/00-setup-program.md) for this program."
     if args.url:
         prompt += f" {eng.platform_name} program URL: {args.url}"
@@ -95,6 +106,20 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return doctor.run()
 
 
+def cmd_onboard(args: argparse.Namespace) -> int:
+    return onboard.run(args)
+
+
+def cmd_radar_init(args: argparse.Namespace) -> int:
+    prof = profile.load()
+    if prof is None:
+        raise profile.ProfileError("No hunter profile yet. Run `bountyproof onboard` first.")
+    dest = Path(args.dir).expanduser().resolve() if args.dir else radar.default_dir()
+    prof = radar.setup(prof, dest, repo_name=args.repo, github=not args.no_github)
+    profile.save(prof)
+    return 0
+
+
 def _shell_path(path: Path) -> str:
     text = str(path)
     return f'"{text}"' if " " in text else text
@@ -102,7 +127,11 @@ def _shell_path(path: Path) -> str:
 
 def _add_engagement_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("name", help="program name, e.g. 'Acme Corp'")
-    p.add_argument("--platform", choices=sorted(workspace.PLATFORMS), default="hackerone")
+    p.add_argument(
+        "--platform",
+        choices=sorted(workspace.PLATFORMS),
+        help="default: your only platform in the hunter profile, else hackerone",
+    )
     p.add_argument(
         "--mode",
         choices=workspace.MODES,
@@ -110,7 +139,7 @@ def _add_engagement_args(p: argparse.ArgumentParser) -> None:
         help="blackbox = live target via browser + curl; whitebox = source + local Docker lab",
     )
     p.add_argument("--stack", choices=workspace.STACKS, default="custom", help="Docker template (whitebox)")
-    p.add_argument("--dir", default=".", help="parent folder for the workspace (default: current folder)")
+    p.add_argument("--dir", help="parent folder for the workspace (default: the profile's, else the current folder)")
     p.add_argument("--no-git", action="store_true", help="don't initialise a local git repo")
 
 
@@ -150,6 +179,27 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("doctor", help="check the local toolchain")
     p.set_defaults(func=cmd_doctor)
+
+    p = sub.add_parser("onboard", help="set up your hunter profile: accounts, devices, tools and limits")
+    p.add_argument("--detect", action="store_true", help="only show what this machine has; save nothing")
+    p.add_argument("--yes", action="store_true", help="don't ask: use the flags given and defaults for the rest")
+    p.add_argument("--platform", action="append", metavar="NAME[:USER]", help="ywh, intigriti, hackerone or none")
+    p.add_argument("--device", action="append", choices=[*profile.DEVICES, "none"])
+    p.add_argument("--focus", action="append", choices=[*profile.FOCUS, "none"])
+    p.add_argument("--cant", action="append", choices=[*profile.LIMITS, "none"], help="things you can't do")
+    p.add_argument("--hours", type=int, help="hours a week")
+    p.add_argument("--min-bounty", type=int, help="smallest top bounty worth your time")
+    p.add_argument("--workspaces", help="folder for new workspaces (default: ~/bounties)")
+    p.add_argument("--no-radar", action="store_true", help="don't offer to set up Radar")
+    p.set_defaults(func=cmd_onboard)
+
+    p = sub.add_parser("radar", help="phone alerts for new programs that fit your profile")
+    radar_sub = p.add_subparsers(dest="radar_command", required=True)
+    r = radar_sub.add_parser("init", help="write Radar for your profile and put it live in a private GitHub repo")
+    r.add_argument("dir", nargs="?", help="folder to create (default: ~/bountyproof-radar)")
+    r.add_argument("--repo", default="bountyproof-radar", help="name of the private repo to create")
+    r.add_argument("--no-github", action="store_true", help="only write the files")
+    r.set_defaults(func=cmd_radar_init)
     return parser
 
 
@@ -160,7 +210,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except (workspace.WorkspaceError, scope.ScopeError, AssetsNotFound) as exc:
+    except (workspace.WorkspaceError, scope.ScopeError, profile.ProfileError, radar.RadarError, AssetsNotFound) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:

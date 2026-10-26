@@ -9,6 +9,14 @@ from bountyproof import workspace
 needs_node = pytest.mark.skipif(shutil.which("node") is None, reason="Node.js not installed")
 
 
+@pytest.fixture(autouse=True)
+def bountyproof_home(tmp_path: Path, monkeypatch) -> Path:
+    """Keep every test away from the real ~/.bountyproof profile."""
+    home = tmp_path / "bp-home"
+    monkeypatch.setenv("BOUNTYPROOF_HOME", str(home))
+    return home
+
+
 @pytest.fixture
 def make_ws(tmp_path: Path):
     """Create a workspace and optionally fill its scope."""

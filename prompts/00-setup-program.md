@@ -15,6 +15,12 @@ Mandatory before any hunting.
 
 ## Tasks
 
+0. **Read `notes/hunter-profile.md`** if it exists (`bountyproof onboard` writes it). It lists the
+   hunter's platform username, devices, tools, parallel capacity and limits. Plan only with what it
+   lists: no mobile work without a device or decompiler marked available, no white-box lab if Docker
+   is missing, no more parallel browser sessions or labs than it allows. If the program needs
+   something the profile rules out, say so in the selection gate.
+
 1. **Ingest the program page.** Platform program pages sit behind a login and a JS app, so a plain
    web fetch usually fails. Use one of:
    - **Browser (preferred):** open the program page with the Playwright MCP browser (log in once

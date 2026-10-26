@@ -7,7 +7,14 @@ First public release.
   `funnel` skills, `discoverer` / `validator` / `judge` agents, scope-guard hook.
 - Workspace template for black-box (live) and white-box (source + Docker lab) engagements.
 - Phase 4b is now a clarity pass (same facts, concise first-person write-up).
-- CLI: `new`, `start`, `scope check | confirm | hash`, `funnel`, `doctor`. Standard library only.
+- CLI: `new`, `start`, `scope check | confirm | hash`, `funnel`, `doctor`, `onboard`, `radar init`.
+  Standard library only.
+- Onboarding: `bountyproof onboard` (and `/bountyproof:onboard`) detects hardware, tools and phones
+  over USB, asks about platform accounts, devices and limits, and saves a hunter profile. New
+  workspaces get it as `notes/hunter-profile.md`; Phase 0 plans with it.
+- `bountyproof radar init` writes Radar with the profile filled into its fit score and, with the
+  GitHub CLI, creates the private repo, sets the secrets, picks a private ntfy topic and sends a test
+  alert to your phone.
 - Scope guard: `requireConfirm` human confirmation gate, dry-run mode for `scope check`, plugin copy
   defers to the workspace copy.
 - Radar: GitHub Actions templates that watch platforms and score new programs.
