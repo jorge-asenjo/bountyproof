@@ -8,3 +8,6 @@ poc/*.cookies
 
 # Egress log from the scope-guard hook: target URLs (secrets redacted, but still private).
 notes/egress-log.jsonl
+
+# Test account credentials.
+notes/accounts.md

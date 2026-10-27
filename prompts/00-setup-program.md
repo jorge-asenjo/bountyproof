@@ -81,7 +81,7 @@ Mandatory before any hunting.
 
 6b. **(Black-box) Prepare accounts.** The human registers the test accounts, following the program's
     policy (email alias rules). Authorization testing needs TWO accounts (A and B) plus an anonymous
-    session.
+    session. Credentials go in `notes/accounts.md`, which is gitignored.
 
 6c. **(Both modes) Fill `notes/scope.json`**, the machine-readable scope that the `scope-guard` hook
     enforces on every network command and browser navigation (out-of-scope host → blocked, missing

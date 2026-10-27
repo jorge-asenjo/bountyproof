@@ -11,6 +11,9 @@ Run this phase of the bountyproof pipeline in the current engagement workspace.
 2. Read `CLAUDE.md` (engagement mode and hard rules) and `notes/case-file.md`.
 3. Follow `prompts/00-setup-program.md` from this workspace, which the engagement may have customized.
    If the workspace doesn't have it, follow `${CLAUDE_PLUGIN_ROOT}/prompts/00-setup-program.md`.
-4. The argument is the program URL. Finish by running `bountyproof scope check` on one in-scope and one out-of-scope URL (if the CLI is available) to prove the guard works.
+4. The argument is the program URL. Finish by checking one in-scope and one out-of-scope URL with
+   the first form that works, to prove the guard works (nothing is sent):
+   - `bountyproof scope check "<url>"`
+   - `python "${CLAUDE_PLUGIN_ROOT}/scripts/bountyproof.py" scope check "<url>"`
 
 Arguments: $ARGUMENTS
