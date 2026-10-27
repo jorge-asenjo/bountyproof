@@ -42,7 +42,12 @@ const NET_TOOLS = new Set([
 ]);
 const NET_HINT = /\b(curl|wget|invoke-webrequest|iwr|invoke-restmethod|irm|httpx|ffuf|nuclei|sqlmap|nmap|gobuster|feroxbuster|dirsearch|katana|arjun|dalfox|python3?|py|node|openssl|ncat|nc)\b/i;
 // Confirming the scope is the human's step, so the agent can't run it (CLI or PowerShell script).
+// Reading or searching for it is fine.
 const CONFIRM_RE = /\bscope\s+confirm\b|confirm-scope\.ps1/i;
+const READERS = new Set([
+  'cat', 'head', 'tail', 'less', 'more', 'type', 'get-content', 'gc', 'grep', 'rg', 'findstr', 'select-string',
+  'sls', 'sed', 'awk', 'wc', 'ls', 'dir', 'echo', 'printf', 'write-output', 'write-host', 'git', 'diff',
+]);
 const URL_RE = /\b(?:https?|wss?):\/\/[^\s'"<>`)\]}]+/gi;
 const HOST_RE = /(?<![\w.@-])((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,})(?![\w-])/gi;
 const DEFAULT_ALLOW = [
@@ -119,6 +124,19 @@ function segments(cmd, ps) {
 function toolName(tok) {
   const base = tok.replace(/^.*[\\/]/, '').toLowerCase();
   return base.endsWith('.exe') ? base.slice(0, -4) : base;
+}
+
+function confirmsScope(cmd, ps) {
+  if (!CONFIRM_RE.test(cmd)) return false;
+  for (const seg of segments(cmd, ps)) {
+    let i = 0;
+    while (i < seg.length && (seg[i] === '&' || seg[i] === '.' || /^[A-Za-z_]\w*=/.test(seg[i]))) i++;
+    if (i >= seg.length || READERS.has(toolName(seg[i]))) continue;
+    const words = seg.slice(i).map(t => t.toLowerCase());
+    if (words.some(w => w.endsWith('confirm-scope.ps1') || /\bscope\s+confirm\b/.test(w))) return true;
+    if (words.some((w, j) => w === 'scope' && words[j + 1] === 'confirm')) return true;
+  }
+  return false;
 }
 
 function hostOf(tok) {
@@ -242,7 +260,7 @@ function decide(input, scope) {
     reqs.push({ tool: 'browser', dests: [ti.url], mentions: [], ua: '(browser)', headers: [], method: 'GET', body: '', hasBody: false });
   } else {
     raw = String(ti.command || '');
-    if (CONFIRM_RE.test(raw)) {
+    if (confirmsScope(raw, tname === 'PowerShell')) {
       log({ tool: tname, decision: 'deny', reasons: ['scope confirmation attempted by the agent'], cmd: redact(raw) });
       return {
         hookSpecificOutput: {

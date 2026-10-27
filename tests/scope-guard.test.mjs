@@ -121,7 +121,13 @@ test('the agent cannot confirm the scope itself', () => {
   assert.equal(decide(bash('bountyproof scope confirm --yes'), scope).decision, 'deny');
   assert.equal(decide(bash('python scripts/bountyproof.py scope   confirm'), scope).decision, 'deny');
   assert.equal(decide(ps('.\\tools\\scripts\\confirm-scope.ps1'), scope).decision, 'deny');
+  assert.equal(decide(bash('bash -c "bountyproof scope confirm --yes"'), scope).decision, 'deny');
+  assert.equal(decide(ps('& .\\tools\\scripts\\confirm-scope.ps1'), scope).decision, 'deny');
   assert.equal(decide(bash('bountyproof scope check https://app.example.com/'), scope).decision, 'allow');
+  // reading or searching for the confirm step is fine
+  assert.equal(decide(bash('head -30 tools/scripts/confirm-scope.ps1'), scope).decision, 'allow');
+  assert.equal(decide(bash('grep -n "scope confirm" prompts/00-setup-program.md'), scope).decision, 'allow');
+  assert.equal(decide(ps('Get-Content tools/scripts/confirm-scope.ps1'), scope).decision, 'allow');
 });
 
 test('guard is inactive until inScope is filled', () => {
