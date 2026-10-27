@@ -116,6 +116,14 @@ test('requireConfirm blocks until the current scope hash is confirmed', () => {
   assert.equal(decide(curl('https://app.example.com/'), widened).decision, 'deny');
 });
 
+test('the agent cannot confirm the scope itself', () => {
+  const scope = { ...BASE, requireConfirm: true };
+  assert.equal(decide(bash('bountyproof scope confirm --yes'), scope).decision, 'deny');
+  assert.equal(decide(bash('python scripts/bountyproof.py scope   confirm'), scope).decision, 'deny');
+  assert.equal(decide(ps('.\\tools\\scripts\\confirm-scope.ps1'), scope).decision, 'deny');
+  assert.equal(decide(bash('bountyproof scope check https://app.example.com/'), scope).decision, 'allow');
+});
+
 test('guard is inactive until inScope is filled', () => {
   assert.equal(decide(curl('https://admin.example.com/'), { ...BASE, inScope: [] }).decision, 'allow');
 });

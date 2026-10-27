@@ -13,7 +13,7 @@
   "confirmStateChanging": false,
   "_confirmStateChanging_note": "true = ask before POST/PUT/PATCH/DELETE or a request with a body against a live in-scope host (GraphQL queries without 'mutation' don't count).",
   "requireConfirm": false,
-  "_requireConfirm_note": "true = the guard blocks ALL live testing of in-scope hosts until the current scope is confirmed. After editing inScope/outOfScope/denyUnlisted, review them and run 'bountyproof scope confirm' (or tools/scripts/confirm-scope.ps1) to re-confirm. Any edit invalidates the previous confirmation (ZeroProtocol pattern: widening scope clears it automatically). Leave false for white-box lab-only work.",
+  "_requireConfirm_note": "true = the guard blocks ALL live testing of in-scope hosts until the current scope is confirmed. After editing inScope/outOfScope/denyUnlisted, review them and run 'bountyproof scope confirm' (or tools/scripts/confirm-scope.ps1) to re-confirm. Any edit invalidates the previous confirmation (ZeroProtocol pattern: widening scope clears it automatically). Black-box workspaces start with true; white-box lab-only work starts with false. Only the human confirms: the scope-guard hook blocks the agent from running the confirm command.",
   "confirmedScope": "",
   "_confirmedScope_note": "SHA-256 of the confirmed inScope/outOfScope/denyUnlisted set. Written by 'bountyproof scope confirm' / confirm-scope.ps1 — do NOT edit by hand. When it no longer matches the current scope and requireConfirm=true, the guard denies in-scope requests.",
   "allowHosts": [],

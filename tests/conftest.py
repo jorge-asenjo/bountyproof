@@ -38,4 +38,5 @@ SCOPE = {
     "outOfScope": ["admin.example.com"],
     "denyUnlisted": ["example.com", "*.example.com"],
     "uaTag": "BugBounty-tester",
+    "requireConfirm": False,
 }

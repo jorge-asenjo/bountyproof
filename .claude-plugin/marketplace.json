@@ -1,6 +1,6 @@
 {
   "name": "bountyproof",
-  "description": "The bug bounty agent that won't report what it can't prove.",
+  "description": "They hunt. They prove it. You get paid.",
   "owner": {
     "name": "Jorge Asenjo",
     "url": "https://github.com/jorge-asenjo"
@@ -9,7 +9,7 @@
     {
       "name": "bountyproof",
       "source": "./",
-      "description": "Evidence-gated, scope-enforced agent harness for bug bounty work."
+      "description": "A team of AI agents for bug bounties: they hunt, prove each finding and draft the report. You approve the scope and press submit."
     }
   ]
 }

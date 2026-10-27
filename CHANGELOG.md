@@ -15,6 +15,10 @@ First public release.
 - `bountyproof radar init` writes Radar with the profile filled into its fit score and, with the
   GitHub CLI, creates the private repo, sets the secrets, picks a private ntfy topic and sends a test
   alert to your phone.
+- Black-box workspaces start with `requireConfirm: true`: no live testing until the human runs
+  `bountyproof scope confirm`, and the scope guard blocks the agent from running it.
+- README reframed around the agent team and the path from onboarding to a submitted report;
+  `WINS.md` for real payouts.
 - Scope guard: `requireConfirm` human confirmation gate, dry-run mode for `scope check`, plugin copy
   defers to the workspace copy.
 - Radar: GitHub Actions templates that watch platforms and score new programs.

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-labelledby="t">
-  <title id="t">bountyproof: the bug bounty agent that won't report what it can't prove</title>
+  <title id="t">bountyproof: they hunt, they prove it, you get paid</title>
   <defs>
     <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
       <path d="M32 0H0V32" fill="none" stroke="#1a2230" stroke-width="1"/>
@@ -12,19 +12,24 @@
   <rect width="1280" height="320" rx="20" fill="#0d1117"/>
   <rect width="1280" height="320" rx="20" fill="url(#grid)"/>
 
-  <text x="72" y="150" class="sans" font-size="76" font-weight="800" fill="#e6edf3" letter-spacing="-1.5">bounty<tspan fill="#d97757">proof</tspan></text>
-  <text x="76" y="200" class="sans" font-size="26" fill="#c9d1d9">The bug bounty agent that won't report what it can't prove.</text>
-  <text x="76" y="248" class="mono" font-size="16" fill="#7d8a9c">separate agents · evidence judge · scope enforced by code · human submits</text>
+  <text x="72" y="146" class="sans" font-size="78" font-weight="800" fill="#e6edf3" letter-spacing="-1.5">bountyproof</text>
+  <text x="76" y="200" class="sans" font-size="31" fill="#c9d1d9">They hunt. They prove it. You get paid.</text>
+  <text x="76" y="248" class="mono" font-size="16" fill="#7d8a9c">AI agents for bug bounties, built on Claude Code</text>
 
-  <!-- conceptual evidence funnel (not to scale) -->
-  <g class="mono" font-size="14" text-anchor="middle">
-    <rect x="890" y="76" width="300" height="30" rx="6" fill="#1d2a3e"/>
-    <text x="1040" y="96" fill="#9fb6d8">hypotheses</text>
-    <rect x="925" y="116" width="230" height="30" rx="6" fill="#1d3354"/>
-    <text x="1040" y="136" fill="#b8cdee">validated</text>
-    <rect x="955" y="156" width="170" height="30" rx="6" fill="#3a2418" stroke="#d97757"/>
-    <text x="1040" y="176" fill="#f3b498">passed the judge</text>
-    <rect x="985" y="196" width="110" height="30" rx="6" fill="#12321f" stroke="#22c55e"/>
-    <text x="1040" y="216" fill="#7fe0a3">submitted</text>
+  <!-- the team, top to bottom -->
+  <line x1="866" y1="62" x2="866" y2="258" stroke="#2b3646" stroke-width="2"/>
+  <g class="mono" font-size="16">
+    <circle cx="866" cy="62" r="7" fill="#3b82f6"/>
+    <text x="888" y="67" fill="#c9d1d9">radar</text><text x="1000" y="67" fill="#7d8a9c">new program found</text>
+    <circle cx="866" cy="101" r="7" fill="#3b82f6"/>
+    <text x="888" y="106" fill="#c9d1d9">recon</text><text x="1000" y="106" fill="#7d8a9c">surface mapped</text>
+    <circle cx="866" cy="140" r="7" fill="#3b82f6"/>
+    <text x="888" y="145" fill="#c9d1d9">hunters</text><text x="1000" y="145" fill="#7d8a9c">leads proposed</text>
+    <circle cx="866" cy="179" r="7" fill="#3b82f6"/>
+    <text x="888" y="184" fill="#c9d1d9">validator</text><text x="1000" y="184" fill="#7d8a9c">bug reproduced</text>
+    <circle cx="866" cy="218" r="7" fill="#d97757"/>
+    <text x="888" y="223" fill="#f3b498">judge</text><text x="1000" y="223" fill="#c9a08c">proof checked</text>
+    <circle cx="866" cy="258" r="8" fill="#22c55e"/>
+    <text x="888" y="263" fill="#7fe0a3">you</text><text x="1000" y="263" fill="#7fe0a3">press submit</text>
   </g>
 </svg>

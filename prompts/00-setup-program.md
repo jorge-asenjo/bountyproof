@@ -98,10 +98,11 @@ Mandatory before any hunting.
     Sanity-check it without sending anything: `bountyproof scope check "<in-scope URL>"` must allow,
     and `bountyproof scope check "<OOS URL>"` must deny.
 
-    **Recommended for live black-box work:** set `requireConfirm: true`, review the scope against
-    the program page, then run `bountyproof scope confirm`. Until then the hook blocks all live
-    in-scope testing, and any later edit to the scope re-blocks it. This forces a deliberate human
-    "yes, this is what I'm authorized to test".
+    **Black-box workspaces start with `requireConfirm: true`.** The hook blocks all live in-scope
+    testing until the human reviews the scope against the program page and runs
+    `bountyproof scope confirm` in their own terminal (the hook won't let you run it). Any later
+    edit to the scope re-blocks it. End Phase 0 by showing the scope and asking for that
+    confirmation.
 
 7. **Output a summary** and confirm readiness for Phase 1.
 

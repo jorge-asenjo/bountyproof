@@ -146,7 +146,7 @@ def _add_engagement_args(p: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="bountyproof",
-        description="Evidence-gated, scope-enforced agent harness for bug bounty work.",
+        description="A team of AI agents for bug bounties. They hunt, prove it and draft the report; you submit.",
     )
     parser.add_argument("--version", action="version", version=f"bountyproof {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)

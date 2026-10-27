@@ -19,6 +19,11 @@ def test_blackbox_workspace_layout(make_ws):
     assert not list((ws / "reference").glob("*-form-reference.md"))
 
 
+def test_blackbox_needs_human_scope_confirmation(make_ws):
+    assert scope.load(make_ws("blackbox") / "notes" / "scope.json")["requireConfirm"] is True
+    assert scope.load(make_ws("whitebox", "ywh") / "notes" / "scope.json")["requireConfirm"] is False
+
+
 def test_whitebox_workspace_layout(make_ws):
     ws = make_ws("whitebox", "hackerone")
     assert "WHITE-BOX" in (ws / "CLAUDE.md").read_text(encoding="utf-8")
@@ -76,7 +81,7 @@ def test_check_is_a_dry_run(make_ws):
 @needs_node
 def test_confirmation_hash_matches_the_hook(make_ws):
     """Python and the Node hook must compute the same scope hash, or confirmation never unblocks."""
-    ws = make_ws(**SCOPE, requireConfirm=True)
+    ws = make_ws(**{**SCOPE, "requireConfirm": True})
     assert scope.check(ws, "https://app.example.com/").decision == "deny"  # not confirmed yet
 
     scope_file = ws / "notes" / "scope.json"

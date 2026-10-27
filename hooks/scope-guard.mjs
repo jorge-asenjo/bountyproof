@@ -41,6 +41,8 @@ const NET_TOOLS = new Set([
   'python', 'python3', 'py', 'node', 'openssl', 'ncat', 'nc',
 ]);
 const NET_HINT = /\b(curl|wget|invoke-webrequest|iwr|invoke-restmethod|irm|httpx|ffuf|nuclei|sqlmap|nmap|gobuster|feroxbuster|dirsearch|katana|arjun|dalfox|python3?|py|node|openssl|ncat|nc)\b/i;
+// Confirming the scope is the human's step, so the agent can't run it (CLI or PowerShell script).
+const CONFIRM_RE = /\bscope\s+confirm\b|confirm-scope\.ps1/i;
 const URL_RE = /\b(?:https?|wss?):\/\/[^\s'"<>`)\]}]+/gi;
 const HOST_RE = /(?<![\w.@-])((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,})(?![\w-])/gi;
 const DEFAULT_ALLOW = [
@@ -240,6 +242,16 @@ function decide(input, scope) {
     reqs.push({ tool: 'browser', dests: [ti.url], mentions: [], ua: '(browser)', headers: [], method: 'GET', body: '', hasBody: false });
   } else {
     raw = String(ti.command || '');
+    if (CONFIRM_RE.test(raw)) {
+      log({ tool: tname, decision: 'deny', reasons: ['scope confirmation attempted by the agent'], cmd: redact(raw) });
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: "[scope-guard] Confirming the scope is the human's step. Ask them to review notes/scope.json against the program page and run `bountyproof scope confirm` in their own terminal.",
+        },
+      };
+    }
     if (!NET_HINT.test(raw)) return null;
     for (const seg of segments(raw, tname === 'PowerShell')) {
       const idx = seg.findIndex(t => NET_TOOLS.has(toolName(t)));

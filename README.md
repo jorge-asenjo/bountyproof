@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="bountyproof: the bug bounty agent that won't report what it can't prove" width="100%">
+  <img src="docs/assets/banner.svg" alt="bountyproof: they hunt, they prove it, you get paid" width="100%">
 </p>
 
 <p align="center">
@@ -11,113 +11,110 @@
 
 <p align="center"><a href="README.es.md">Leer en español</a></p>
 
-**bountyproof** is an agent harness for bug bounty work, built on Claude Code. It splits an
-engagement into phases run by separate agents, keeps every request inside the program's scope with
-a hook, and puts an independent evidence judge in front of every report. A finding is false until
-the judge sees the artifact that separates "vulnerable" from "benign".
+**bountyproof** puts a team of AI agents to work on bug bounties. It watches YesWeHack, Intigriti
+and HackerOne for programs that fit you, maps the target, hunts for bugs, proves each one and drafts
+the report in the platform's format. You do two things: approve the scope and press submit.
 
-## Why
+It runs on [Claude Code](https://code.claude.com) as a plugin, with a small CLI that has no
+dependencies.
 
-Bug bounty programs are drowning in AI-generated reports that fall apart on the first replay.
-curl ended its paid bug bounty in January 2026 after a flood of them ([BleepingComputer][curl]).
-Most AI hunting tools optimize for finding more. bountyproof optimizes for being believed:
+## Meet the team
 
-- **Discovery and validation are different agents.** The agent that proposes a bug never confirms it.
-- **An evidence judge gates every report.** Exploitation conditions, the best benign explanation,
-  and the discriminating artifact, or no report.
-- **Scope is enforced by code, not by prompt.** A `PreToolUse` hook blocks out-of-scope hosts,
-  missing program headers and unknown hosts, and logs every request.
-- **The human presses submit.** The agent drafts and reviews; it never sends a report.
-
-## Quickstart
-
-Inside Claude Code:
-
-```text
-/plugin marketplace add jorge-asenjo/bountyproof
-/plugin install bountyproof@bountyproof
-/bountyproof:new "Acme Corp" --platform hackerone --mode blackbox
-```
-
-Then open Claude Code in the new workspace and run `/bountyproof:setup <program URL>`.
-
-First time? `bountyproof onboard` checks your machine (tools, Docker, phones over USB), asks which
-platforms you're on and what you can test with, and saves a profile every new workspace plans with.
-It ends by offering phone alerts for new programs that fit you (`bountyproof radar init`).
-
-Prefer a terminal? The CLI has no dependencies:
-
-```bash
-uvx --from git+https://github.com/jorge-asenjo/bountyproof bountyproof new "Acme Corp" --platform ywh
-```
-
-Requirements: [Claude Code](https://code.claude.com), Node.js 18+ (runs the scope guard), Python
-3.10+, git. Docker for white-box labs and the demo lab. Run `bountyproof doctor` to check.
-
-### Try it without a bounty account
-
-[`lab/`](lab/) runs the whole pipeline against OWASP Juice Shop on `localhost`, with a scope file
-that only allows the lab. Nothing leaves your machine.
-
-## How it works
+| Agent | What it does |
+|---|---|
+| **Radar** | Checks the platforms every hour and pings your phone when a program that fits you launches or adds scope. |
+| **Recon** | Maps the attack surface: hosts, apps, APIs, roles, and the flows that move money or data. |
+| **Hunters** | Split the target into pieces and work them in parallel, read-only. Each lead comes with the test that could prove it wrong. |
+| **Validator** | A different agent from the one that found the lead. Reproduces it on your own test accounts, negative control first. |
+| **Evidence judge** | Lets a finding through only with what a triager needs: how it's exploited, why it isn't benign, and the saved request that shows it. |
+| **Writer** | Drafts the report from verified facts, in the platform's form. A fresh judge reviews it before you submit. |
+| **You** | Approve the scope. Press submit. |
 
 <p align="center">
-  <img src="docs/assets/architecture.svg" alt="Orchestrator, read-only discoverers, case file, validator, evidence judge, human submit" width="100%">
+  <img src="docs/assets/architecture.svg" alt="Orchestrator, read-only hunters, case file, validator, evidence judge, human submit" width="100%">
 </p>
 
-| Phase | Command | Who | Output |
-|---|---|---|---|
-| 0 Setup | `/bountyproof:setup` | orchestrator | program rules, threat model, trust map, `scope.json` |
-| 1 Recon | `/bountyproof:recon` | read-only subagents | attack surface map |
-| 2 Discovery | `/bountyproof:discover` | `discoverer` × shard | candidate hypotheses with dossiers |
-| 3 Validation | `/bountyproof:validate` | `validator` | confirmed / rejected / needs_validation |
-| 3b Judge | `/bountyproof:judge` | `judge` | PASS / NEEDS_VALIDATION / DISCARD |
-| 4a Draft | `/bountyproof:draft` | orchestrator | v1 from verified facts, `[MISSING]` for gaps |
-| 4b Clarity | `/bountyproof:clarity` | orchestrator | concise first-person v2, same facts |
-| 4c Review | `/bountyproof:review` | fresh `judge` | READY / NEEDS FIXES / DO NOT SUBMIT |
-| 5 Calibrate | `/bountyproof:calibrate` | orchestrator | lessons from the real triage outcome |
+## From zero to your first report
 
-Each workspace is a folder with its own `CLAUDE.md` (black-box live target, or white-box source +
-Docker lab), the phase prompts, and `notes/case-file.md`: the shared memory where every hypothesis
-carries a dossier with its benign alternative and a falsifiable test. Agents read and write the
-case file, not the chat transcript.
+1. **Install.** In Claude Code:
 
-Design notes and sources: [`reference/agent-architecture.md`](reference/agent-architecture.md).
+   ```text
+   /plugin marketplace add jorge-asenjo/bountyproof
+   /plugin install bountyproof@bountyproof
+   ```
 
-## The evidence funnel
+   And the CLI, from a terminal: `uv tool install git+https://github.com/jorge-asenjo/bountyproof`.
 
-`bountyproof funnel` shows how many hypotheses survived each gate. Example output:
+2. **Onboard.** `bountyproof onboard` takes a few minutes. It checks your machine (tools, Docker,
+   phones plugged in over USB), asks which platforms you're on and what you can test with, and
+   saves a profile that every workspace plans with.
+3. **Turn on alerts.** It ends by offering Radar: a private GitHub repo that watches the platforms
+   for you, set up in one step with the GitHub CLI, and a test alert to the free
+   [ntfy](https://ntfy.sh) app on your phone.
+4. **Paste the alert.** Each alert carries a fit score, a first angle and one command:
 
-```text
-Evidence funnel - acme-corp-hackerone
+   ```text
+   [GO 78 | dup:low] HackerOne - Example Corp
+   NEW SCOPE: api.example.com | max bounty 5000 USD
+   Angle: Enumerate order IDs on the new API; test cross-account access
 
-  hypotheses proposed    14  ##############################
-  validated               4  #########
-  passed the judge        2  ####
-  submitted               1  ##
-  accepted                1  ##
+   bountyproof start "Example Corp" --platform hackerone --url "https://hackerone.com/example-corp"
+   ```
 
-  dropped: DISCARDED 2, needs_validation 2, rejected 6
-```
+   It creates the workspace and starts the agents on the program page: rules, scope, threat model.
+5. **Approve the scope.** The agents can't touch a live target until you've checked the scope
+   against the program page and run `bountyproof scope confirm` yourself. The agents can't run it.
+6. **Let them work.** Recon, hunting, validation, the judge, the draft. `bountyproof funnel` shows
+   how many leads survived each step.
+7. **Read the report and press submit.** The agents never send anything.
 
-A narrow funnel is the point. Most hypotheses should die before they cost a triager any time.
+## Why proof is where the money is
 
-## Guardrails
+Platforms track how many of your reports hold up. Invalid and "informative" reports cost
+reputation, and reputation decides who gets invited to private programs, where the crowd is thinner.
+Programs are also drowning in AI reports that fall apart on the first replay; curl ended its bounty
+over them in January 2026 ([BleepingComputer][curl]). A report that carries the request and response
+proving it is the kind a triager can accept on the spot.
 
-The scope guard ([`hooks/scope-guard.mjs`](hooks/scope-guard.mjs)) runs before every Bash and
-PowerShell command and every browser navigation, using the workspace's `notes/scope.json`:
+That's why the judge sits in front of every report. In the [evals](#evals), the same model without
+bountyproof passed a convincing finding whose evidence files didn't exist, three times out of three.
+With the judge, zero.
+
+## Hunt with what you have
+
+Onboarding works out what your machine can take on, and both the agents and Radar use it:
+
+| Capability | What it needs |
+|---|---|
+| Web apps and APIs | Claude Code, Node.js. The agents drive a real browser (Playwright) and curl. |
+| Android apps | jadx or apktool to read the app's code; adb and a phone over USB for dynamic tests. |
+| iOS apps | An iPhone and libimobiledevice. |
+| Source-available targets | Docker, for a local lab built from the program's own code. |
+
+With an Android phone in your profile, Radar favours programs with apps; without Docker, it scores
+white-box programs down. The agents never plan work for a device or tool you don't have.
+
+Try the whole pipeline without a bounty account: [`lab/`](lab/) runs it against OWASP Juice Shop on
+`localhost`, with a scope file that only allows the lab.
+
+## Stays inside the rules
+
+The fastest way to lose a bounty account is testing something out of scope. The scope guard
+([`hooks/scope-guard.mjs`](hooks/scope-guard.mjs)) turns the program's rules into a code-level check
+that runs before every shell command and every browser navigation:
 
 | Situation | Result |
 |---|---|
-| Host listed as out of scope, or unlisted under a `denyUnlisted` domain | **deny** |
+| Host out of scope, or unlisted under a domain the program fences off | **deny** |
 | In-scope request without the program's UA tag or required headers | **deny** |
 | Host that isn't in the scope file at all | **deny** |
 | `Host:` header pointing at an out-of-scope vhost | **deny** |
+| Scope not confirmed by you, or edited since you confirmed it | **deny** |
+| The agent trying to confirm the scope itself | **deny** |
 | State-changing request, when `confirmStateChanging` is on | **ask** |
-| Scope edited since the last human confirmation, when `requireConfirm` is on | **deny** |
 
-Every checked request is appended to `notes/egress-log.jsonl` with secrets redacted. Test your scope
-file without sending anything:
+Every checked request goes to `notes/egress-log.jsonl`, with secrets redacted. Check a URL without
+sending anything:
 
 ```text
 $ bountyproof scope check https://admin.acme.example/
@@ -128,12 +125,40 @@ DENY  https://admin.acme.example/
 The hook sees command text, not what a script does at runtime, so the workspace rules still forbid
 routing around it. It fails open on internal errors so a bug can't brick a session.
 
+<details>
+<summary><b>All phases and commands</b></summary>
+
+| Phase | Command | Who | Output |
+|---|---|---|---|
+| Onboard | `bountyproof onboard` / `/bountyproof:onboard` | you + CLI | hunter profile, Radar |
+| 0 Setup | `/bountyproof:setup` | orchestrator | program rules, threat model, trust map, `scope.json` |
+| 1 Recon | `/bountyproof:recon` | read-only subagents | attack surface map |
+| 2 Discovery | `/bountyproof:discover` | `discoverer` × shard | leads with dossiers |
+| 3 Validation | `/bountyproof:validate` | `validator` | confirmed / rejected / needs_validation |
+| 3b Judge | `/bountyproof:judge` | `judge` | PASS / NEEDS_VALIDATION / DISCARD |
+| 4a Draft | `/bountyproof:draft` | orchestrator | v1 from verified facts, `[MISSING]` for gaps |
+| 4b Clarity | `/bountyproof:clarity` | orchestrator | concise first-person v2, same facts |
+| 4c Review | `/bountyproof:review` | fresh `judge` | READY / NEEDS FIXES / DO NOT SUBMIT |
+| 5 Calibrate | `/bountyproof:calibrate` | orchestrator | lessons from the real triage outcome |
+
+Each workspace is a folder with its own `CLAUDE.md` (black-box live target, or white-box source +
+Docker lab), the phase prompts, your hunter profile and `notes/case-file.md`: the shared memory where
+every lead carries a dossier with its benign alternative and a falsifiable test. Agents read and
+write the case file, not the chat transcript. Design notes and sources:
+[`reference/agent-architecture.md`](reference/agent-architecture.md).
+
+CLI: `onboard`, `radar init`, `new`, `start`, `scope check | confirm | hash`, `funnel`, `doctor`.
+Requirements: Claude Code, Node.js 18+, Python 3.10+, git; Docker for white-box labs and the demo
+lab. `bountyproof doctor` checks them.
+
+</details>
+
 ## Evals
 
 [`evals/`](evals/) holds a seed benchmark for the evidence judge, run with Claude Code's native
-`claude plugin eval`. Each case seeds a fictional engagement and asks for a verdict on one finding; the
-runner repeats it with and without the plugin, so the difference is what the judge adds over the same
-model on its own.
+`claude plugin eval`. Each case seeds a fictional engagement and asks for a verdict on one finding;
+the runner repeats it with and without the plugin, so the difference is what bountyproof adds over
+the same model on its own.
 
 First results (Claude Code 2.1.310, `--model opus`, 3 runs per arm, 2026-10-26):
 
@@ -147,21 +172,18 @@ First results (Claude Code 2.1.310, `--model opus`, 3 runs per arm, 2026-10-26):
 | Needs a trusted insider (staff console) | not PASS | 1.00 | 1.00 | 0.00 |
 | Plausible race, no artifact captured | NEEDS_VALIDATION | 1.00 | 1.00 | 0.00 |
 
-What this says, and what it doesn't: a strong model already rejects the classic slop patterns when
-they're spelled out in the case file. Where the judge made the difference was checking that the
-evidence a dossier cites actually exists: without the plugin, the model passed a convincing finding
-whose saved requests and responses were nowhere in the workspace, three times out of three. Seven
-cases is a seed, not a benchmark; harder cases and smaller models are next.
+A strong model already rejects the classic weak-report patterns when they're spelled out. Where the
+judge made the difference was checking that the evidence a dossier cites actually exists. Seven cases
+is a seed, not a benchmark; harder cases and smaller models are next.
 
 ```bash
 claude plugin eval . --scaffold --trust-plugin
 ```
 
-## Radar
+## Wins
 
-[`radar/`](radar/) watches YesWeHack, Intigriti and HackerOne for new programs and scope additions,
-scores each one against a fit rubric you edit, and sends an alert with the command that sets up the
-workspace. It runs as GitHub Actions in your own private repo.
+Got paid on a finding bountyproof helped with? Add it to [WINS.md](WINS.md) with a pull request.
+Public programs or disclosed reports only: never name a private program.
 
 ## Responsible use
 
@@ -171,18 +193,18 @@ Private-program workspaces stay local; never push them to a public remote.
 
 ## Roadmap
 
-- **More evals.** Judge cases built from publicly disclosed reports (valid and invalid), pipeline
-  cases against the lab target, and results across models.
-- **Observability.** Case file with a JSON schema, cost and tokens per phase, an HTML evidence viewer.
+- **Walkthrough video:** from onboarding to a submitted report.
+- **More evals:** judge cases built from publicly disclosed reports, pipeline cases against the lab,
+  results across models.
+- **Observability:** cost and tokens per phase, an HTML evidence viewer.
 - **Scope guard as a standalone plugin** for any Claude Code security workflow.
 
 ## Credits
 
-Ideas this harness builds on: separating discovery from validation and judging on evidence
-(Google Project Zero's Naptime / Big Sleep, Cloudflare's security-audit-skill), human scope
-confirmation that resets when the scope changes (ZeroProtocol). The
-[YesWeHack claude-kit](https://github.com/yeswehack/claude-kit) plugin is a good companion for
-report writing on YesWeHack.
+Ideas this builds on: separating discovery from validation and judging on evidence (Google Project
+Zero's Naptime / Big Sleep, Cloudflare's security-audit-skill), human scope confirmation that resets
+when the scope changes (ZeroProtocol). The [YesWeHack claude-kit](https://github.com/yeswehack/claude-kit)
+plugin is a good companion for report writing on YesWeHack.
 
 Built by [Jorge Asenjo](https://github.com/jorge-asenjo). MIT licensed.
 

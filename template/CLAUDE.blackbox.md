@@ -67,7 +67,8 @@ The hard rules below are program rules, not approvals: they always apply.
   every Playwright navigation): out-of-scope host → blocked; in-scope request without the UA tag or
   required headers → blocked; host not in `notes/scope.json` → blocked (add it to allowHosts,
   hunterInfra or inScope, or drop it); state-changing request → asks only if `confirmStateChanging`
-  is true; with `requireConfirm: true`, all live testing waits for `bountyproof scope confirm`.
+  is true; with `requireConfirm: true` (the default here), all live testing waits for the human to
+  run `bountyproof scope confirm`, which the hook blocks you from running.
   Every checked request goes to `notes/egress-log.jsonl` (secrets redacted). The hook is inactive
   until `inScope` is filled in Phase 0. It can't see inside scripts that open their own connections
   or in-page fetches: those stay under rule 1.

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "bountyproof"
 dynamic = ["version"]
-description = "Evidence-gated, scope-enforced agent harness for bug bounty work, built on Claude Code."
+description = "A team of AI agents for bug bounties, built on Claude Code: they hunt, prove it, and draft the report."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

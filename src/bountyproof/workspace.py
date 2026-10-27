@@ -82,6 +82,10 @@ def create(eng: Engagement, parent: Path, init_git: bool = True, hunter_profile:
         (dest / "source").mkdir()
     else:
         shutil.rmtree(dest / "docker")
+        # Live targets: no testing until a human has checked the scope against the program page.
+        scope_file = dest / "notes" / "scope.json"
+        text = scope_file.read_text(encoding="utf-8")
+        scope_file.write_text(text.replace('"requireConfirm": false', '"requireConfirm": true', 1), encoding="utf-8")
 
     shutil.copytree(src / "prompts", dest / "prompts")
     shutil.copytree(src / "reference", dest / "reference")
