@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="bountyproof: they hunt, they prove it, you get paid" width="100%">
+  <img src="docs/assets/banner.jpg" alt="bountyproof: they hunt, they prove it, you get paid" width="100%">
 </p>
 
 <p align="center">

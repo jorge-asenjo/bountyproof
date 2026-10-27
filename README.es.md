@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="bountyproof: ellos cazan, lo prueban y tú cobras" width="100%">
+  <img src="docs/assets/banner.es.jpg" alt="bountyproof: ellos cazan, lo prueban y tú cobras" width="100%">
 </p>
 
 > Versión en español. La documentación de referencia está en inglés: [README.md](README.md).
