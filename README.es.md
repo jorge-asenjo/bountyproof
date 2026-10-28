@@ -12,6 +12,11 @@ scope y pulsar enviar.
 Funciona sobre [Claude Code](https://code.claude.com) como plugin, con una CLI pequeña sin
 dependencias.
 
+
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="bountyproof ejecutando todo el pipeline contra el lab de demo" width="100%">
+</p>
+
 ## El equipo
 
 | Agente | Qué hace |
@@ -78,14 +83,7 @@ Con el juez, ninguna.
 
 ## Una pasada real
 
-Una pasada del pipeline contra el lab de demo (OWASP Juice Shop en `localhost`):
-
-```text
-  hypotheses proposed    22  ##############################
-  validated              17  #######################
-  passed the judge       16  ######################
-```
-
+El GIF de arriba es una pasada real contra el lab de demo (OWASP Juice Shop en `localhost`).
 El validador tiró dos pistas que no se reproducían. El juez descartó una más, juntó duplicados en 14
 informes y puso prohibiciones de exagerar al resto ("nada de 'volcó todos los usuarios'", "nada de
 hablar de dinero real"). El guard de scope bloqueó las pruebas hasta que se confirmó el scope. Aquí

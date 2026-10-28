@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=block" rel="stylesheet">
+<style>
+  :root { --bg:#0d1117; --fg:#e6edf3; --dim:#8b98a9; --green:#22c55e; --blue:#3b82f6; --coral:#d97757; }
+  * { margin:0; box-sizing:border-box; }
+  html,body { background:#05070a; }
+  .wrap { width:1000px; height:880px; padding:28px; }
+  .term { width:100%; height:100%; background:var(--bg); border:1px solid #20283a; border-radius:14px;
+          box-shadow:0 20px 60px rgba(0,0,0,.5); overflow:hidden; display:flex; flex-direction:column; }
+  .bar { height:44px; display:flex; align-items:center; gap:9px; padding:0 18px; border-bottom:1px solid #1a2230; }
+  .dot { width:13px; height:13px; border-radius:50%; }
+  .r{background:#ff5f56}.y{background:#ffbd2e}.g{background:#27c93f}
+  .ttl { margin-left:14px; color:var(--dim); font:400 15px 'JetBrains Mono',monospace; }
+  .body { flex:1; padding:22px 26px; font:400 18px/26px 'JetBrains Mono',monospace; color:var(--fg);
+          white-space:pre; }
+  .line { min-height:26px; }
+  .line { display:block; }
+  .prompt { color:var(--green); font-weight:700; }
+  .dim { color:var(--dim); }
+  .ok { color:var(--green); }
+  .accent { color:var(--blue); }
+  .coral { color:var(--coral); }
+  .slash { color:var(--fg); font-weight:700; }
+  .barblue { color:var(--blue); }
+  .barcoral { color:var(--coral); }
+  .ready { color:var(--green); font-weight:700; }
+  .go { color:var(--green); font-weight:700; }
+  .headline { color:#fff; font-weight:700; font-size:22px; }
+  .cursor { background:var(--fg); color:var(--bg); }
+</style>
+</head>
+<body>
+<div class="wrap"><div class="term">
+  <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="ttl">bountyproof — demo lab (OWASP Juice Shop, localhost)</span></div>
+  <div class="body" id="body"></div>
+</div></div>
+<script>
+const L = [
+  ['$ ','prompt','bountyproof onboard'],
+  ['  Windows 11 · 22 cores · 32 GB · docker, adb, jadx','dim',''],
+  ['  ready   Web apps and APIs          ready   Android apps','ok',''],
+  ['  Saved ~/.bountyproof/profile.json','dim',''],
+  ['','',''],
+  ['  radar → a program that fits you just launched:','accent',''],
+  ['  [GO 78 · dup:low]  HackerOne — demo lab','go',''],
+  ['','',''],
+  ['$ ','prompt','bountyproof start "Juice Shop Lab" --url http://localhost:3000'],
+  ['  Created ./bounties/juice-shop-lab-hackerone','dim',''],
+  ['','',''],
+  ['$ ','prompt','bountyproof scope confirm'],
+  ['  ✓ you approved the scope — the agents cannot','ok',''],
+  ['','',''],
+  ['> ','slash','/bountyproof:hunt'],
+  ['  ● recon       attack surface mapped','accent',''],
+  ['  ● discover    22 leads proposed','accent',''],
+  ['  ● validate    17 confirmed · 2 did not reproduce','accent',''],
+  ['  ● judge       16 passed · overclaims trimmed','coral',''],
+  ['  ● report      14 drafted & reviewed','accent',''],
+  ['','',''],
+  ['$ ','prompt','bountyproof funnel'],
+  ['  hypotheses proposed   22  ██████████████████████████████','barblue',''],
+  ['  validated             17  ███████████████████████','barblue',''],
+  ['  passed the judge      16  ██████████████████████','barcoral',''],
+  ['','',''],
+  ['  reports/H-001-v2.md   READY','ready',''],
+  ['','',''],
+  ['  They hunt. They prove it. You get paid.','headline',''],
+];
+const n = Math.max(0, Math.min(L.length, parseInt(new URLSearchParams(location.search).get('n')||'0',10)));
+const body = document.getElementById('body');
+for (let i=0;i<n;i++){
+  const [a,cls,cmd]=L[i];
+  const el=document.createElement('span'); el.className='line';
+  if(cmd){ el.innerHTML='<span class="'+cls+'">'+a+'</span>'+esc(cmd)+(i===n-1?cur():''); }
+  else if(!a){ el.className='line'; el.innerHTML='&nbsp;'; }
+  else { el.className='line '+cls; el.textContent=a; if(i===n-1){ el.innerHTML=esc(a)+cur(); } }
+  body.appendChild(el);
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function cur(){return '<span class="cursor">&nbsp;</span>';}
+document.fonts.ready.then(()=>document.body.setAttribute('data-ready','1'));
+</script>
+</body>
+</html>

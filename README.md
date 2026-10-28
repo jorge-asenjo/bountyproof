@@ -18,6 +18,11 @@ the report in the platform's format. You do two things: approve the scope and pr
 It runs on [Claude Code](https://code.claude.com) as a plugin, with a small CLI that has no
 dependencies.
 
+
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="bountyproof running the full pipeline against the demo lab: onboard, confirm scope, hunt, funnel, a READY report" width="100%">
+</p>
+
 ## Meet the team
 
 | Agent | What it does |
@@ -83,14 +88,7 @@ With the judge, zero.
 
 ## A real run
 
-One pass of the pipeline against the demo lab (OWASP Juice Shop on `localhost`):
-
-```text
-  hypotheses proposed    22  ##############################
-  validated              17  #######################
-  passed the judge       16  ######################
-```
-
+The GIF above is one real pass against the demo lab (OWASP Juice Shop on `localhost`).
 The validator threw out two leads that didn't reproduce. The judge discarded one more, merged
 duplicates into 14 reports and attached overclaim bans to the rest ("no 'dumped all users'", "no
 real-money framing"). The scope guard blocked testing until the scope was confirmed. Read the
