@@ -123,6 +123,45 @@ def test_funnel_counts(tmp_path):
     assert "hypotheses proposed" in out and "needs_validation 1" in out
 
 
+# How agents actually write it: an extra column, bold statuses, split and merged IDs, a verdict table.
+REAL_CASE_FILE = """
+## 2. Hypotheses
+| ID | Class | Shard / artifact | Trust boundary | Confidence | Status | Round |
+|----|-------|------------------|----------------|------------|--------|-------|
+| H-001 | sqli | login | anon -> auth | high | **confirmed** | R1-V1 |
+| H-011a | authz | products | anon -> catalog | high | **confirmed** | R1-V3 |
+| H-011b | xss | products | anon -> users | low | **rejected** (sanitised) | R1-V3 |
+| H-012 | logic | checkout | customer | med | **confirmed (incidental)** | - |
+| H-013 | idor | orders | A -> B | high | candidate | HUMAN |
+
+## 6. Judge verdicts
+| ID | Verdict | CVSS 3.1 | Note |
+|----|---------|----------|------|
+| H-001 | PASS | 9.1 | proven on account B |
+| H-011a | PASS→fold | 5.3 | |
+| H-012 | DISCARD | - | simulated payment by design |
+
+JUDGE H-011: PASS
+JUDGE H-011b: DISCARD (already rejected at validation)
+"""
+
+
+def test_funnel_reads_real_case_files(tmp_path):
+    path = tmp_path / "case-file.md"
+    path.write_text(REAL_CASE_FILE, encoding="utf-8")
+    f = funnel.parse(path)
+    assert f.statuses == {
+        "H-001": "confirmed",
+        "H-011a": "confirmed",
+        "H-011b": "rejected",
+        "H-012": "confirmed",
+        "H-013": "candidate",
+    }
+    assert f.judged == {"H-001": "PASS", "H-011a": "PASS", "H-012": "DISCARD"}  # unknown / rejected IDs ignored
+    assert (f.proposed, f.validated, f.passed) == (5, 3, 2)
+    assert f.side_counts() == {"rejected": 1, "DISCARDED": 1}
+
+
 def test_cli_new_and_funnel(tmp_path, capsys, monkeypatch):
     assert cli.main(["new", "Demo", "--dir", str(tmp_path), "--no-git"]) == 0
     monkeypatch.chdir(tmp_path / "demo-hackerone")

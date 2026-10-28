@@ -80,6 +80,21 @@ That's why the judge sits in front of every report. In the [evals](#evals), the 
 bountyproof passed a convincing finding whose evidence files didn't exist, three times out of three.
 With the judge, zero.
 
+## A real run
+
+One pass of the pipeline against the demo lab (OWASP Juice Shop on `localhost`):
+
+```text
+  hypotheses proposed    22  ##############################
+  validated              17  #######################
+  passed the judge       16  ######################
+```
+
+The validator threw out two leads that didn't reproduce. The judge discarded one more, merged
+duplicates into 14 reports and attached overclaim bans to the rest ("no 'dumped all users'", "no
+real-money framing"). The scope guard blocked testing until the scope was confirmed. Read the
+[full run and the first report](docs/examples/juice-shop/).
+
 ## Hunt with what you have
 
 Onboarding works out what your machine can take on, and both the agents and Radar use it:

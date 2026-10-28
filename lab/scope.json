@@ -7,7 +7,7 @@
   "uaTag": "bountyproof-lab",
   "requiredHeaders": [],
   "confirmStateChanging": false,
-  "requireConfirm": false,
+  "requireConfirm": true,
   "confirmedScope": "",
   "allowHosts": [],
   "hunterInfra": []

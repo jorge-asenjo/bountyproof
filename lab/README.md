@@ -13,18 +13,24 @@ docker compose -f lab/docker-compose.yml up -d
 bountyproof new "Juice Shop Lab" --mode blackbox --dir ./engagements
 cp lab/scope.json engagements/juice-shop-lab-hackerone/notes/scope.json
 
-# 3. Check the guard: the lab is allowed, the internet is not
+# 3. Approve the scope (your step: the agents can't run it), then check the guard
 cd engagements/juice-shop-lab-hackerone
+bountyproof scope confirm
 bountyproof scope check http://localhost:3000/rest/products/search?q=apple   # ALLOW
 bountyproof scope check https://example.com/                                # DENY
 
-# 4. Hunt
+# 4. Register two test accounts (A and B) at http://localhost:3000/#/register
+#    and write them in notes/accounts.md (gitignored)
+
+# 5. Hunt
 claude
 ```
 
 In Claude Code, run `/bountyproof:setup` and paste [`program-rules.md`](program-rules.md) as the program
 page, then `/bountyproof:recon`, `/bountyproof:discover`, `/bountyproof:validate` and
-`/bountyproof:judge`. When you're done, `bountyproof funnel` shows how many hypotheses survived each gate.
+`/bountyproof:judge`, then `/bountyproof:draft`. When you're done, `bountyproof funnel` shows how many
+hypotheses survived each gate. [docs/examples/juice-shop](../docs/examples/juice-shop/) shows one full run.
+If Phase 0 tightens the scope, the guard asks you to confirm it again: that's expected.
 
 Stop the lab with `docker compose -f lab/docker-compose.yml down`.
 

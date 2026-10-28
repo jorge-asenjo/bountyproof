@@ -29,8 +29,12 @@ A short, specific, first-person write-up with an exact reproducer earns the oppo
 - Repetition between description, impact and summary.
 
 ## Accuracy guard (clearer, never stronger)
-- **No new claims.** Every endpoint, ID, number, version and impact in v2 must already be in v1,
-  and therefore in the evidence. Nothing gets added "to make it flow".
+- **No new claims — values and characterisations alike.** Every endpoint, ID, number, version and
+  impact in v2 must already be in v1 and be backed by a specific `poc/` file. This is not only about
+  values: it also covers *assertions about what the evidence shows* — sufficiency ("the bearer header
+  alone is enough"), generality ("works for any user"), necessity ("no victim interaction needed"). If
+  a capture doesn't isolate the claim, don't make it — not even in a parenthetical aside. Matching v1
+  is not a free pass: if v1 itself outran its captures, cut the claim anyway.
 - **No severity creep.** Avoid "trivially", "completely", "full takeover", "any user" or "critical"
   unless the PoC literally shows it. Understated beats overstated: triagers trust the researcher who
   undersells.
@@ -41,8 +45,10 @@ A short, specific, first-person write-up with an exact reproducer earns the oppo
 
 ## Self-check
 1. Could a triager with zero context reproduce it from v2 alone?
-2. Diff the facts: list every claim in v2 and tick it against v1. Anything new or stronger → remove
-   it or bring it back to v1's wording.
+2. Diff the claims: list every claim in v2 — values *and* assertions about what was shown (sufficiency,
+   generality, necessity) — and tick each against the `poc/` file that proves it, not just against v1.
+   Anything new, stronger, or not isolated by a capture → remove it or walk it back to what the
+   evidence shows.
 3. Read it once top to bottom. If a sentence doesn't help someone reproduce or assess the bug, cut it.
 
 Save as `reports/[FINDING-ID]-v2.md`, then run Phase 4c.

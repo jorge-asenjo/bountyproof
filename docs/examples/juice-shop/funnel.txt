@@ -1,0 +1,9 @@
+Evidence funnel - juice-shop-lab-hackerone
+
+  hypotheses proposed    22  ##############################
+  validated              17  #######################
+  passed the judge       16  ######################
+  submitted               0  
+  accepted                0  
+
+  dropped: DISCARDED 1, rejected 2

@@ -75,6 +75,21 @@ Por eso el juez está delante de cada informe. En las [evals](README.md#evals), 
 bountyproof dio por bueno un hallazgo convincente cuyas evidencias no existían, tres veces de tres.
 Con el juez, ninguna.
 
+## Una pasada real
+
+Una pasada del pipeline contra el lab de demo (OWASP Juice Shop en `localhost`):
+
+```text
+  hypotheses proposed    22  ##############################
+  validated              17  #######################
+  passed the judge       16  ######################
+```
+
+El validador tiró dos pistas que no se reproducían. El juez descartó una más, juntó duplicados en 14
+informes y puso prohibiciones de exagerar al resto ("nada de 'volcó todos los usuarios'", "nada de
+hablar de dinero real"). El guard de scope bloqueó las pruebas hasta que se confirmó el scope. Aquí
+tienes [la pasada completa y el primer informe](docs/examples/juice-shop/).
+
 ## Caza con lo que tienes
 
 El onboarding averigua qué puede hacer tu máquina, y lo usan tanto los agentes como el Radar:
