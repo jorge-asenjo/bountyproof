@@ -17,6 +17,9 @@ First public release.
   alert to your phone.
 - Black-box workspaces start with `requireConfirm: true`: no live testing until the human runs
   `bountyproof scope confirm`, and the scope guard blocks the agent from running it.
+- `/bountyproof:hunt`: the whole pipeline in one command, stopping only at the two human gates
+  (confirm the scope, press submit).
+- Clarity pass: claims about sufficiency, generality or necessity need a capture that isolates them.
 - README reframed around the agent team and the path from onboarding to a submitted report;
   `WINS.md` for real payouts.
 - Scope guard: `requireConfirm` human confirmation gate, dry-run mode for `scope check`, plugin copy

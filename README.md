@@ -64,8 +64,9 @@ dependencies.
    It creates the workspace and starts the agents on the program page: rules, scope, threat model.
 5. **Approve the scope.** The agents can't touch a live target until you've checked the scope
    against the program page and run `bountyproof scope confirm` yourself. The agents can't run it.
-6. **Let them work.** Recon, hunting, validation, the judge, the draft. `bountyproof funnel` shows
-   how many leads survived each step.
+6. **Let them work.** `/bountyproof:hunt` runs recon, hunting, validation, the judge and a reviewed
+   report for every finding that passes, without stopping. `bountyproof funnel` shows how many leads
+   survived each step.
 7. **Read the report and press submit.** The agents never send anything.
 
 ## Why proof is where the money is
@@ -146,6 +147,7 @@ routing around it. It fails open on internal errors so a bug can't brick a sessi
 | Phase | Command | Who | Output |
 |---|---|---|---|
 | Onboard | `bountyproof onboard` / `/bountyproof:onboard` | you + CLI | hunter profile, Radar |
+| All of 1-4c | `/bountyproof:hunt` | orchestrator | stops only to confirm the scope and at submit |
 | 0 Setup | `/bountyproof:setup` | orchestrator | program rules, threat model, trust map, `scope.json` |
 | 1 Recon | `/bountyproof:recon` | read-only subagents | attack surface map |
 | 2 Discovery | `/bountyproof:discover` | `discoverer` × shard | leads with dossiers |

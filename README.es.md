@@ -59,8 +59,9 @@ dependencias.
    amenazas.
 5. **Aprueba el scope.** Los agentes no pueden tocar un objetivo real hasta que compruebes el scope
    con la página del programa y ejecutes tú `bountyproof scope confirm`. Ellos no pueden ejecutarlo.
-6. **Déjalos trabajar.** Recon, caza, validación, el juez y el borrador. `bountyproof funnel` muestra
-   cuántas pistas sobreviven a cada paso.
+6. **Déjalos trabajar.** `/bountyproof:hunt` hace recon, caza, validación, el juez y un informe revisado
+   de cada hallazgo que pasa, sin pararse. `bountyproof funnel` muestra cuántas pistas sobreviven a
+   cada paso.
 7. **Lee el informe y pulsa enviar.** Los agentes nunca envían nada.
 
 ## Por qué la prueba es lo que da dinero

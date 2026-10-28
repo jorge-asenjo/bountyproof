@@ -40,3 +40,7 @@ narrower.
 [`report-H-001.md`](report-H-001.md): the clarity-pass version (v2), as the hunter would paste it.
 Proven on the hunter's own second account, negative control first, captures saved under
 `poc/H-001/` in the workspace, and impact limited to what the requests showed.
+
+It's shown as generated. It predates a tightening of the clarity pass that came out of this run:
+claims about what the evidence shows, such as "the bearer header alone is enough" or "works for any
+account", now need a capture that isolates them, or they get cut.
