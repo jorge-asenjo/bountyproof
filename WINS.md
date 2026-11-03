@@ -12,3 +12,4 @@ newest first.
 
 | Date | Platform | Program (public only) | Severity | Bounty | What the agents did |
 |---|---|---|---|---|---|
+| | | *No entries yet. Yours could be the first.* | | | |

@@ -66,7 +66,9 @@ def needed_secrets(watched: list[str]) -> list[str]:
 
 def _run(cmd: list[str], cwd: Path | None = None, stdin: str | None = None, check: bool = True):
     try:
-        out = subprocess.run(cmd, cwd=cwd, input=stdin, capture_output=True, text=True, timeout=120)
+        out = subprocess.run(
+            cmd, cwd=cwd, input=stdin, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120
+        )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise RadarError(f"`{' '.join(cmd[:3])}` failed: {exc}") from exc
     if check and out.returncode != 0:

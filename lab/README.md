@@ -27,10 +27,15 @@ claude
 ```
 
 In Claude Code, run `/bountyproof:setup` and paste [`program-rules.md`](program-rules.md) as the program
-page, then `/bountyproof:recon`, `/bountyproof:discover`, `/bountyproof:validate` and
-`/bountyproof:judge`, then `/bountyproof:draft`. When you're done, `bountyproof funnel` shows how many
-hypotheses survived each gate. [docs/examples/juice-shop](../docs/examples/juice-shop/) shows one full run.
+page, then `/bountyproof:hunt` for the rest of the pipeline in one go (or the phases one by one:
+`/bountyproof:recon`, `/bountyproof:discover`, `/bountyproof:validate`, `/bountyproof:judge`,
+`/bountyproof:draft`). When you're done, `bountyproof funnel` shows how many hypotheses survived each
+gate. [docs/examples/juice-shop](../docs/examples/juice-shop/) shows one full run.
 If Phase 0 tightens the scope, the guard asks you to confirm it again: that's expected.
+
+The lab has no platform to submit to, so the form-filling step (4d) has nothing to fill: the reports
+stay in the workspace's `reports/` folder. To skip it, set `- Fill with Claude in Chrome: off` in the
+workspace's `notes/hunter-profile.md`.
 
 Stop the lab with `docker compose -f lab/docker-compose.yml down`.
 

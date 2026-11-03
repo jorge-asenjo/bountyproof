@@ -167,3 +167,12 @@ def test_cli_new_and_funnel(tmp_path, capsys, monkeypatch):
     monkeypatch.chdir(tmp_path / "demo-hackerone")
     assert cli.main(["funnel"]) == 0
     assert "Evidence funnel" in capsys.readouterr().out
+
+
+def test_doctor_reads_node_major_version():
+    from bountyproof import doctor
+
+    assert doctor._node_major("v20.11.1") == 20
+    assert doctor._node_major("v16.20.2") == 16
+    assert doctor._node_major("") is None
+    assert doctor._node_major("not node") is None

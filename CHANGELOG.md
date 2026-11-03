@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-04)
 
 First public release.
 - Claude Code plugin: phase skills (`/bountyproof:setup` … `/bountyproof:calibrate`), `new` and
@@ -25,7 +25,11 @@ First public release.
 - Scope guard: `requireConfirm` human confirmation gate, dry-run mode for `scope check`, plugin copy
   defers to the workspace copy.
 - Radar: GitHub Actions templates that watch platforms and score new programs.
-- Demo lab with OWASP Juice Shop.
+- Demo lab with OWASP Juice Shop, and one real run of the pipeline against it in
+  `docs/examples/juice-shop/` (funnel, what each gate did, the first report).
+- `bountyproof funnel` reads real case files: columns by header, IDs like `H-011a` and
+  `H-009+H-010`, statuses in bold.
+- `bountyproof doctor` checks for Node.js 18+ and no longer crashes when `claude plugin list` hangs.
 - Seed eval suite for the evidence judge (7 cases) with first results in the README.
 - Phase 4d, `/bountyproof:fill`: a READY report goes into the platform's form in your own Chrome
   with the Claude in Chrome extension, and stops before submit. On by default, also at the end of

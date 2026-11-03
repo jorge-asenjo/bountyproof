@@ -18,13 +18,19 @@ classifiers = [
   "Intended Audience :: Information Technology",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Security",
 ]
 dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/jorge-asenjo/bountyproof"
+Repository = "https://github.com/jorge-asenjo/bountyproof"
 Issues = "https://github.com/jorge-asenjo/bountyproof/issues"
+Changelog = "https://github.com/jorge-asenjo/bountyproof/blob/main/CHANGELOG.md"
 
 [project.scripts]
 bountyproof = "bountyproof.cli:main"
