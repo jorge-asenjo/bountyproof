@@ -51,12 +51,17 @@ human gates below. This is the one-command version of running `/bountyproof:reco
      re-review the same ID until READY or DO NOT SUBMIT.
 
 ## Gate 2 - submit (human only)
-10. When every PASS finding is READY or DO NOT SUBMIT, STOP. Run `bountyproof funnel` (or
+10. When every PASS finding is READY or DO NOT SUBMIT, run `bountyproof funnel` (or
     `python "${CLAUDE_PLUGIN_ROOT}/scripts/bountyproof.py" funnel`) and show it, then list each READY
-    finding with its severity and the path to `reports/<ID>-v2.md`. The agent never submits; the human
-    reviews and submits. Per `CLAUDE.md` rule 6, recommend submitting the single strongest report
-    first and waiting for triage to calibrate before sending the rest.
-11. If nothing reached a report, say so plainly (one solid report beats ten weak ones - `CLAUDE.md`
+    finding with its severity and the path to `reports/<ID>-v2.md`. Per `CLAUDE.md` rule 6, recommend
+    submitting the single strongest report first and waiting for triage before sending the rest.
+11. **Fill the form.** Unless `notes/hunter-profile.md` says `Fill with Claude in Chrome: off`, fill
+    that strongest READY report into the platform's form in the human's Chrome: follow
+    `prompts/06b-fill-report-form.md` (workspace, else
+    `${CLAUDE_PLUGIN_ROOT}/prompts/06b-fill-report-form.md`). It stops before submit. If the switch
+    is off, or the extension isn't connected, hand over the report path to paste by hand.
+12. STOP. The agent never submits; the human reads the form and presses submit.
+13. If nothing reached a report, say so plainly (one solid report beats ten weak ones - `CLAUDE.md`
     rule 9): show the funnel and name the single next action that would move the best lead forward
     (for a `needs_validation` item, its one missing fact).
 

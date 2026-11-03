@@ -15,10 +15,13 @@ Onboard the user to bountyproof.
    - devices to test with (Android phone, iPhone, Mac);
    - what to hunt (web apps, APIs, mobile apps, source-available code);
    - anything they can't do (corporate email accounts, KYC with identity documents, real purchases);
-   - hours a week, and the smallest top bounty worth their time.
+   - hours a week, and the smallest top bounty worth their time;
+   - whether the agents should fill the platform's report form in their Chrome with the Claude in
+     Chrome extension (on unless they say no; they still press submit).
 3. Save the profile with the same command plus `--yes` and one flag per answer, for example:
    `bountyproof onboard --yes --platform hackerone:jdoe --platform ywh --device android --focus web --focus api --focus mobile --cant kyc --hours 8 --min-bounty 500`.
-   Use `none` for an empty answer (`--device none`).
+   Use `none` for an empty answer (`--device none`), and add `--no-chrome-fill` if they don't want
+   the form filled.
 4. Show the "What you can hunt" table it prints. For each `partial` or `missing` line the user cares
    about, give the one install step that fixes it.
 5. Phone alerts need tokens typed in privately, so don't run Radar here. Tell the user to run

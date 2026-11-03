@@ -6,8 +6,8 @@
 
 **bountyproof** pone a un equipo de agentes de IA a hacer bug bounties por ti. Vigila YesWeHack,
 Intigriti y HackerOne buscando programas que encajen contigo, mapea el objetivo, caza bugs, prueba
-cada uno y redacta el informe con el formato de la plataforma. Tú solo haces dos cosas: aprobar el
-scope y pulsar enviar.
+cada uno, redacta el informe y lo rellena en el formulario de la plataforma, en tu Chrome. Tú solo
+haces dos cosas: aprobar el scope y pulsar enviar.
 
 Funciona sobre [Claude Code](https://code.claude.com) como plugin, con una CLI pequeña sin
 dependencias.
@@ -26,7 +26,7 @@ dependencias.
 | **Cazadores** | Reparten el objetivo y lo trabajan en paralelo, en solo lectura. Cada pista llega con la prueba que podría tumbarla. |
 | **Validador** | Un agente distinto del que encontró la pista. La reproduce con tus cuentas de prueba, empezando por el control negativo. |
 | **Juez de evidencias** | Solo deja pasar un hallazgo con lo que necesita un triager: cómo se explota, por qué no es benigno y la petición guardada que lo demuestra. |
-| **Redactor** | Escribe el informe solo con hechos verificados, en el formulario de la plataforma. Un juez nuevo lo revisa antes de que lo envíes. |
+| **Redactor** | Escribe el informe solo con hechos verificados. Un juez nuevo lo revisa y después el redactor lo rellena en el formulario de la plataforma, en tu Chrome, y se para antes de enviar. |
 | **Tú** | Apruebas el scope. Pulsas enviar. |
 
 <p align="center">
@@ -43,6 +43,8 @@ dependencias.
    ```
 
    Y la CLI, desde una terminal: `uv tool install git+https://github.com/jorge-asenjo/bountyproof`.
+   Para que los agentes te rellenen el formulario del informe, añade la extensión Claude in Chrome
+   desde la Chrome Web Store y ejecuta `/chrome` una vez en Claude Code.
 
 2. **Configura.** `bountyproof onboard` tarda unos minutos. Revisa tu máquina (herramientas, Docker,
    móviles conectados por USB), te pregunta en qué plataformas estás y con qué puedes testear, y
@@ -67,7 +69,8 @@ dependencias.
 6. **Déjalos trabajar.** `/bountyproof:hunt` hace recon, caza, validación, el juez y un informe revisado
    de cada hallazgo que pasa, sin pararse. `bountyproof funnel` muestra cuántas pistas sobreviven a
    cada paso.
-7. **Lee el informe y pulsa enviar.** Los agentes nunca envían nada.
+7. **Revisa el formulario y pulsa enviar.** El mejor informe te espera rellenado en una pestaña de
+   Chrome. Los agentes nunca envían nada.
 
 ## Por qué la prueba es lo que da dinero
 
@@ -99,6 +102,7 @@ El onboarding averigua qué puede hacer tu máquina, y lo usan tanto los agentes
 | Apps Android | jadx o apktool para leer el código de la app; adb y un móvil por USB para pruebas dinámicas. |
 | Apps iOS | Un iPhone y libimobiledevice. |
 | Objetivos con código disponible | Docker, para un lab local montado con el código del propio programa. |
+| Rellenar el formulario del informe | La extensión Claude in Chrome, con tu sesión iniciada en las plataformas. Activado por defecto; con `bountyproof onboard --no-chrome-fill` lo pegas tú. |
 
 Si tienes un Android en tu perfil, el Radar prioriza los programas con app; sin Docker, puntúa a la
 baja los programas white-box. Los agentes nunca planifican trabajo para un dispositivo o una
@@ -114,7 +118,9 @@ scope ([`hooks/scope-guard.mjs`](hooks/scope-guard.mjs)) convierte las reglas de
 comprobación por código que se ejecuta antes de cada comando y de cada navegación del navegador:
 bloquea hosts fuera de scope o desconocidos, peticiones sin la cabecera del programa, cualquier
 prueba en real antes de que confirmes el scope y cualquier intento del agente de confirmarlo por su
-cuenta. Cada petición queda registrada en `notes/egress-log.jsonl` con los secretos tapados.
+cuenta. Claude in Chrome solo sirve para el formulario de la plataforma: el guard no le deja abrir
+el objetivo y te pregunta antes de cualquier clic que el agente describa como enviar. Cada petición
+queda registrada en `notes/egress-log.jsonl` con los secretos tapados.
 
 ## Logros
 

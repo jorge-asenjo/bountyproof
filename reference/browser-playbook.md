@@ -4,6 +4,17 @@ Goal: the **human only does login + captcha + 2FA, once.** Everything else (navi
 read network, replay/modify requests, screenshot evidence) is driven by the Claude session through
 the Playwright MCP server wired in `.mcp.json`. No more "capture this in Chrome's Network tab for me".
 
+## Two browsers
+| | Playwright (`.mcp.json`) | Claude in Chrome |
+|---|---|---|
+| For | testing the target | the platform's report form (Phase 4d) |
+| Profile | its own, `./tools/browser/profile` | the human's Chrome, with their sessions |
+| Program UA tag | set in `.mcp.json` | none |
+| Scope guard | every navigation checked | every navigation checked; target hosts blocked; a click described as a submit asks the human |
+
+Keep them apart. The human's own Chrome carries their personal sessions and no program UA tag, so it
+never touches the target. Everything below is about the Playwright browser.
+
 ## Prerequisites (one-time, per machine/engagement)
 1. `.mcp.json` is present (template ships it). It launches **headed real Chrome** with a **persistent
    profile** (`./tools/browser/profile`), the program UA, and OOS hosts blocked.

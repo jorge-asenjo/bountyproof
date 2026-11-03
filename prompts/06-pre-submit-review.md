@@ -16,8 +16,9 @@ VERDICT: READY | NEEDS FIXES | DO NOT SUBMIT
 - **DO NOT SUBMIT**: any threat-model NO, asset or class out of scope or on the non-qualifying list,
   testing broke a program rule, or the class proof line isn't met. → status DISCARDED, or back to Phase 3.
 - **NEEDS FIXES**: any Critical/Major item fixable from existing evidence. Fix it, then re-run 06.
-- **READY**: no Critical/Major left. Only then does the human copy it into the platform form and
-  press submit. The agent never submits.
+- **READY**: no Critical/Major left. Only then does it go into the platform's form: filled in the
+  human's Chrome by Phase 4d (`prompts/06b-fill-report-form.md`), or pasted by hand. The human
+  presses submit. The agent never submits.
 
 ## Duplicate check (run BEFORE the verdict)
 Five minutes here saves the worst outcome: a duplicate sent late. For this finding's class and asset:

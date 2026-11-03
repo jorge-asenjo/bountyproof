@@ -12,8 +12,9 @@
 <p align="center"><a href="README.es.md">Leer en español</a></p>
 
 **bountyproof** puts a team of AI agents to work on bug bounties. It watches YesWeHack, Intigriti
-and HackerOne for programs that fit you, maps the target, hunts for bugs, proves each one and drafts
-the report in the platform's format. You do two things: approve the scope and press submit.
+and HackerOne for programs that fit you, maps the target, hunts for bugs, proves each one, drafts
+the report and fills it into the platform's form in your Chrome. You do two things: approve the
+scope and press submit.
 
 It runs on [Claude Code](https://code.claude.com) as a plugin, with a small CLI that has no
 dependencies.
@@ -32,7 +33,7 @@ dependencies.
 | **Hunters** | Split the target into pieces and work them in parallel, read-only. Each lead comes with the test that could prove it wrong. |
 | **Validator** | A different agent from the one that found the lead. Reproduces it on your own test accounts, negative control first. |
 | **Evidence judge** | Lets a finding through only with what a triager needs: how it's exploited, why it isn't benign, and the saved request that shows it. |
-| **Writer** | Drafts the report from verified facts, in the platform's form. A fresh judge reviews it before you submit. |
+| **Writer** | Drafts the report from verified facts. A fresh judge reviews it, then the writer fills it into the platform's form in your Chrome and stops before submit. |
 | **You** | Approve the scope. Press submit. |
 
 <p align="center">
@@ -49,6 +50,8 @@ dependencies.
    ```
 
    And the CLI, from a terminal: `uv tool install git+https://github.com/jorge-asenjo/bountyproof`.
+   For the agents to fill the report form for you, add the Claude in Chrome extension from the
+   Chrome Web Store and run `/chrome` in Claude Code once.
 
 2. **Onboard.** `bountyproof onboard` takes a few minutes. It checks your machine (tools, Docker,
    phones plugged in over USB), asks which platforms you're on and what you can test with, and
@@ -72,7 +75,8 @@ dependencies.
 6. **Let them work.** `/bountyproof:hunt` runs recon, hunting, validation, the judge and a reviewed
    report for every finding that passes, without stopping. `bountyproof funnel` shows how many leads
    survived each step.
-7. **Read the report and press submit.** The agents never send anything.
+7. **Read the form and press submit.** The strongest report is waiting in a Chrome tab, filled in.
+   The agents never send anything.
 
 ## Why proof is where the money is
 
@@ -104,6 +108,7 @@ Onboarding works out what your machine can take on, and both the agents and Rada
 | Android apps | jadx or apktool to read the app's code; adb and a phone over USB for dynamic tests. |
 | iOS apps | An iPhone and libimobiledevice. |
 | Source-available targets | Docker, for a local lab built from the program's own code. |
+| Filling the report form | The Claude in Chrome extension, signed in to your platforms. On by default; `bountyproof onboard --no-chrome-fill` leaves you to paste the report yourself. |
 
 With an Android phone in your profile, Radar favours programs with apps; without Docker, it scores
 white-box programs down. The agents never plan work for a device or tool you don't have.
@@ -126,6 +131,8 @@ that runs before every shell command and every browser navigation:
 | Scope not confirmed by you, or edited since you confirmed it | **deny** |
 | The agent trying to confirm the scope itself | **deny** |
 | State-changing request, when `confirmStateChanging` is on | **ask** |
+| Claude in Chrome opening the target (it's only for the report form) | **deny** |
+| A click in Chrome the agent describes as a submit | **ask** |
 
 Every checked request goes to `notes/egress-log.jsonl`, with secrets redacted. Check a URL without
 sending anything:
@@ -136,8 +143,8 @@ DENY  https://admin.acme.example/
   [scope-guard] admin.acme.example is OUT OF SCOPE (notes/scope.json outOfScope). Do not send requests there.
 ```
 
-The hook sees command text, not what a script does at runtime, so the workspace rules still forbid
-routing around it. It fails open on internal errors so a bug can't brick a session.
+The hook sees command text, not what a script does at runtime, and it knows a click is a submit only
+from how the agent describes it, so the workspace rules still forbid routing around it. It fails open on internal errors so a bug can't brick a session.
 
 <details>
 <summary><b>All phases and commands</b></summary>
@@ -154,6 +161,7 @@ routing around it. It fails open on internal errors so a bug can't brick a sessi
 | 4a Draft | `/bountyproof:draft` | orchestrator | v1 from verified facts, `[MISSING]` for gaps |
 | 4b Clarity | `/bountyproof:clarity` | orchestrator | concise first-person v2, same facts |
 | 4c Review | `/bountyproof:review` | fresh `judge` | READY / NEEDS FIXES / DO NOT SUBMIT |
+| 4d Fill | `/bountyproof:fill` | orchestrator | the platform's form filled in your Chrome, not sent |
 | 5 Calibrate | `/bountyproof:calibrate` | orchestrator | lessons from the real triage outcome |
 
 Each workspace is a folder with its own `CLAUDE.md` (black-box live target, or white-box source +
@@ -164,7 +172,7 @@ write the case file, not the chat transcript. Design notes and sources:
 
 CLI: `onboard`, `radar init`, `new`, `start`, `scope check | confirm | hash`, `funnel`, `doctor`.
 Requirements: Claude Code, Node.js 18+, Python 3.10+, git; Docker for white-box labs and the demo
-lab. `bountyproof doctor` checks them.
+lab; the Claude in Chrome extension to fill report forms. `bountyproof doctor` checks them.
 
 </details>
 

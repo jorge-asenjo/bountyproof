@@ -190,6 +190,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--hours", type=int, help="hours a week")
     p.add_argument("--min-bounty", type=int, help="smallest top bounty worth your time")
     p.add_argument("--workspaces", help="folder for new workspaces (default: ~/bounties)")
+    p.add_argument(
+        "--chrome-fill",
+        action=argparse.BooleanOptionalAction,
+        help="fill the platform's report form in your Chrome with Claude in Chrome (default: on)",
+    )
     p.add_argument("--no-radar", action="store_true", help="don't offer to set up Radar")
     p.set_defaults(func=cmd_onboard)
 

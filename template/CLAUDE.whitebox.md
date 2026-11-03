@@ -15,7 +15,7 @@ production servers. Reporting is bounded by the program rules and scope (Phase 0
    lab. (If the program also authorizes live testing of specific hosts, treat those as a black-box
    engagement and keep them strictly in scope. The default is lab-only.)
 2. **No report without the full pipeline.** Judge (03b) → v1 draft (04) → clarity pass (05) →
-   pre-submit review (06). The agent never submits; the human does.
+   pre-submit review (06) → form filled (06b). The agent never submits; the human presses submit.
 3. **One report before feedback.** The first report on a program calibrates.
 4. **Never inflate CVSS.** Be conservative.
 5. **No report without a replayable PoC and evidence** from the lab.
@@ -40,10 +40,12 @@ production servers. Reporting is bounded by the program rules and scope (Phase 0
 
 ## Guardrails (automated)
 - **`scope-guard` hook** (`.claude/hooks/scope-guard.mjs`): before every Bash/PowerShell network
-  command and Playwright navigation it checks `notes/scope.json`. In white-box, `inScope` = the lab
+  command and Playwright or Claude in Chrome navigation it checks `notes/scope.json`. In white-box, `inScope` = the lab
   hosts and the program's production domains go in `outOfScope`, so rule 1 is enforced by code:
   production → blocked; unknown host → blocked. Checked requests are logged to
   `notes/egress-log.jsonl`. Never route around a block.
+- **Claude in Chrome** is the human's own Chrome, for the platform's report form only: the hook
+  blocks it from in-scope hosts and asks the human before any click described as a submit.
 
 ## Phases
 
@@ -57,6 +59,7 @@ production servers. Reporting is bounded by the program rules and scope (Phase 0
 | 4a Draft | `/bountyproof:draft <ID>` | `prompts/04-write-report-v1.md` | `reports/<ID>-v1.md` |
 | 4b Clarity | `/bountyproof:clarity <ID>` | `prompts/05-clarity-pass.md` | `reports/<ID>-v2.md` |
 | 4c Review | `/bountyproof:review <ID>` | `prompts/06-pre-submit-review.md` | READY / NEEDS FIXES / DO NOT SUBMIT |
+| 4d Fill | `/bountyproof:fill <ID>` | `prompts/06b-fill-report-form.md` | the platform's form filled in your Chrome, not sent |
 | 5 Calibrate | `/bountyproof:calibrate` | `prompts/07-post-feedback-calibrate.md` | `notes/lessons.md` |
 
 Without the plugin, just say "Run Phase N" and follow the prompt file.
