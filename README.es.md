@@ -12,6 +12,12 @@ haces dos cosas: aprobar el scope y pulsar enviar.
 Funciona sobre [Claude Code](https://code.claude.com) como plugin, con una CLI pequeña sin
 dependencias.
 
+> **Solo programas autorizados.** Un [guard de scope](#dentro-de-las-reglas) revisa por código cada
+> petición antes de que salga de tu máquina. Tú confirmas el scope, y tú lees y envías cada informe.
+>
+> **Pruébalo sin cuenta de bug bounty:** [`lab/`](lab/) ejecuta todo el pipeline contra OWASP Juice
+> Shop en `localhost`.
+
 
 <p align="center">
   <img src="docs/assets/demo.gif" alt="bountyproof ejecutando todo el pipeline contra el lab de demo" width="100%">
@@ -21,7 +27,7 @@ dependencias.
 
 | Agente | Qué hace |
 |---|---|
-| **Radar** | Revisa las plataformas cada hora y te avisa en el móvil cuando sale un programa que encaja contigo o un programa añade scope. |
+| **Radar** | Revisa las plataformas cada hora entre semana y te avisa en el móvil cuando sale un programa que encaja contigo o un programa añade scope. |
 | **Recon** | Mapea la superficie: hosts, apps, APIs, roles y los flujos que mueven dinero o datos. |
 | **Cazadores** | Reparten el objetivo y lo trabajan en paralelo, en solo lectura. Cada pista llega con la prueba que podría tumbarla. |
 | **Validador** | Un agente distinto del que encontró la pista. La reproduce con tus cuentas de prueba, empezando por el control negativo. |
@@ -86,8 +92,8 @@ Con el juez, ninguna.
 
 ## Una pasada real
 
-El GIF de arriba es una pasada real contra el lab de demo (OWASP Juice Shop en `localhost`).
-El validador tiró dos pistas que no se reproducían. El juez descartó una más, juntó duplicados en 14
+El GIF de arriba reproduce, en una animación de terminal, las cifras de una pasada real contra el lab
+de demo (OWASP Juice Shop en `localhost`). El validador tiró dos pistas que no se reproducían. El juez descartó una más, juntó duplicados en 14
 informes y puso prohibiciones de exagerar al resto ("nada de 'volcó todos los usuarios'", "nada de
 hablar de dinero real"). El guard de scope bloqueó las pruebas hasta que se confirmó el scope. Aquí
 tienes [la pasada completa y el primer informe](docs/examples/juice-shop/).
@@ -122,6 +128,37 @@ cuenta. Claude in Chrome solo sirve para el formulario de la plataforma: el guar
 el objetivo y te pregunta antes de cualquier clic que el agente describa como enviar. Cada petición
 queda registrada en `notes/egress-log.jsonl` con los secretos tapados.
 
+El hook ve el texto del comando, no lo que hace un script al ejecutarse, y solo sabe que un clic es
+un envío por cómo lo describe el agente; por eso las reglas del workspace siguen prohibiendo
+rodearlo. Si falla por un error interno, deja pasar, para que un bug no bloquee la sesión.
+
+<details>
+<summary><b>Todas las fases y comandos</b></summary>
+
+| Fase | Comando | Quién | Resultado |
+|---|---|---|---|
+| Onboarding | `bountyproof onboard` / `/bountyproof:onboard` | tú + CLI | perfil de cazador, Radar |
+| Workspace nuevo | `bountyproof new` / `/bountyproof:new` | tú + CLI | carpeta del workspace desde la plantilla |
+| De la 1 a la 4d | `/bountyproof:hunt` | orquestador | solo para al confirmar el scope y al enviar |
+| 0 Setup | `/bountyproof:setup` | orquestador | reglas del programa, modelo de amenazas, mapa de confianza, `scope.json` |
+| 1 Recon | `/bountyproof:recon` | subagentes de solo lectura | mapa de la superficie de ataque |
+| 2 Descubrimiento | `/bountyproof:discover` | `discoverer` × shard | pistas con dossier |
+| 3 Validación | `/bountyproof:validate` | `validator` | confirmed / rejected / needs_validation |
+| 3b Juez | `/bountyproof:judge` | `judge` | PASS / NEEDS_VALIDATION / DISCARD |
+| 4a Borrador | `/bountyproof:draft` | orquestador | v1 con hechos verificados, `[MISSING]` donde falta algo |
+| 4b Claridad | `/bountyproof:clarity` | orquestador | v2 concisa en primera persona, mismos hechos |
+| 4c Revisión | `/bountyproof:review` | `judge` nuevo | READY / NEEDS FIXES / DO NOT SUBMIT |
+| 4d Formulario | `/bountyproof:fill` | orquestador | el formulario de la plataforma rellenado en tu Chrome, sin enviar |
+| 5 Calibrar | `/bountyproof:calibrate` | orquestador | lecciones del resultado real del triage |
+| Cuando quieras | `bountyproof funnel` / `/bountyproof:funnel` | CLI | cuántas pistas pasaron cada filtro |
+
+CLI: `onboard`, `radar init`, `new`, `start`, `scope check | confirm | hash`, `funnel`, `doctor`.
+Requisitos: Claude Code, Node.js 18+, Python 3.10+ y git; Docker para los labs white-box y el lab de
+demo; la extensión Claude in Chrome para rellenar formularios. `bountyproof doctor` revisa las
+herramientas de línea de comandos y el plugin; la extensión se comprueba con `/chrome` en Claude Code.
+
+</details>
+
 ## Logros
 
 ¿Has cobrado por un hallazgo en el que te ayudó bountyproof? Añádelo a [WINS.md](WINS.md) con una
@@ -132,6 +169,14 @@ pull request. Solo programas públicos o informes divulgados: nunca nombres un p
 Solo para pruebas autorizadas: programas en los que estás registrado, dentro de su scope y sus
 reglas. Lee [RESPONSIBLE_USE.md](RESPONSIBLE_USE.md) antes de usarlo contra un objetivo real. Los
 workspaces de programas privados se quedan en local.
+
+## Créditos
+
+Ideas en las que se apoya: separar el descubrimiento de la validación y juzgar por evidencias (Naptime
+/ Big Sleep de Google Project Zero, security-audit-skill de Cloudflare) y la confirmación humana del
+scope que se reinicia cuando el scope cambia (ZeroProtocol). El plugin
+[claude-kit de YesWeHack](https://github.com/yeswehack/claude-kit) es un buen compañero para redactar
+informes en YesWeHack.
 
 Hecho por [Jorge Asenjo](https://github.com/jorge-asenjo). Licencia MIT.
 

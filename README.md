@@ -19,6 +19,12 @@ scope and press submit.
 It runs on [Claude Code](https://code.claude.com) as a plugin, with a small CLI that has no
 dependencies.
 
+> **Authorized programs only.** A code-level [scope guard](#stays-inside-the-rules) checks every
+> request before it leaves your machine. You confirm the scope, and you read and submit every report.
+>
+> **Try it without a bounty account:** [`lab/`](lab/) runs the whole pipeline against OWASP Juice
+> Shop on `localhost`.
+
 
 <p align="center">
   <img src="docs/assets/demo.gif" alt="bountyproof running the full pipeline against the demo lab: onboard, confirm scope, hunt, funnel, a READY report" width="100%">
@@ -28,7 +34,7 @@ dependencies.
 
 | Agent | What it does |
 |---|---|
-| **Radar** | Checks the platforms every hour and pings your phone when a program that fits you launches or adds scope. |
+| **Radar** | Checks the platforms every hour on weekdays and pings your phone when a program that fits you launches or adds scope. |
 | **Recon** | Maps the attack surface: hosts, apps, APIs, roles, and the flows that move money or data. |
 | **Hunters** | Split the target into pieces and work them in parallel, read-only. Each lead comes with the test that could prove it wrong. |
 | **Validator** | A different agent from the one that found the lead. Reproduces it on your own test accounts, negative control first. |
@@ -92,8 +98,9 @@ With the judge, zero.
 
 ## A real run
 
-The GIF above is one real pass against the demo lab (OWASP Juice Shop on `localhost`).
-The validator threw out two leads that didn't reproduce. The judge discarded one more, merged
+The GIF above replays the numbers from one real pass against the demo lab (OWASP Juice Shop on
+`localhost`), condensed into a terminal animation. The validator threw out two leads that didn't
+reproduce. The judge discarded one more, merged
 duplicates into 14 reports and attached overclaim bans to the rest ("no 'dumped all users'", "no
 real-money framing"). The scope guard blocked testing until the scope was confirmed. Read the
 [full run and the first report](docs/examples/juice-shop/).
@@ -144,7 +151,8 @@ DENY  https://admin.acme.example/
 ```
 
 The hook sees command text, not what a script does at runtime, and it knows a click is a submit only
-from how the agent describes it, so the workspace rules still forbid routing around it. It fails open on internal errors so a bug can't brick a session.
+from how the agent describes it, so the workspace rules still forbid routing around it. It fails open
+on internal errors so a bug can't brick a session.
 
 <details>
 <summary><b>All phases and commands</b></summary>
@@ -152,7 +160,8 @@ from how the agent describes it, so the workspace rules still forbid routing aro
 | Phase | Command | Who | Output |
 |---|---|---|---|
 | Onboard | `bountyproof onboard` / `/bountyproof:onboard` | you + CLI | hunter profile, Radar |
-| All of 1-4c | `/bountyproof:hunt` | orchestrator | stops only to confirm the scope and at submit |
+| New workspace | `bountyproof new` / `/bountyproof:new` | you + CLI | workspace folder from the template |
+| All of 1-4d | `/bountyproof:hunt` | orchestrator | stops only to confirm the scope and at submit |
 | 0 Setup | `/bountyproof:setup` | orchestrator | program rules, threat model, trust map, `scope.json` |
 | 1 Recon | `/bountyproof:recon` | read-only subagents | attack surface map |
 | 2 Discovery | `/bountyproof:discover` | `discoverer` × shard | leads with dossiers |
@@ -163,6 +172,7 @@ from how the agent describes it, so the workspace rules still forbid routing aro
 | 4c Review | `/bountyproof:review` | fresh `judge` | READY / NEEDS FIXES / DO NOT SUBMIT |
 | 4d Fill | `/bountyproof:fill` | orchestrator | the platform's form filled in your Chrome, not sent |
 | 5 Calibrate | `/bountyproof:calibrate` | orchestrator | lessons from the real triage outcome |
+| Any time | `bountyproof funnel` / `/bountyproof:funnel` | CLI | how many leads survived each gate |
 
 Each workspace is a folder with its own `CLAUDE.md` (black-box live target, or white-box source +
 Docker lab), the phase prompts, your hunter profile and `notes/case-file.md`: the shared memory where
@@ -172,7 +182,8 @@ write the case file, not the chat transcript. Design notes and sources:
 
 CLI: `onboard`, `radar init`, `new`, `start`, `scope check | confirm | hash`, `funnel`, `doctor`.
 Requirements: Claude Code, Node.js 18+, Python 3.10+, git; Docker for white-box labs and the demo
-lab; the Claude in Chrome extension to fill report forms. `bountyproof doctor` checks them.
+lab; the Claude in Chrome extension to fill report forms. `bountyproof doctor` checks the command-line
+tools and the plugin; the Chrome extension you check with `/chrome` in Claude Code.
 
 </details>
 

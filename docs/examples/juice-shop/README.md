@@ -18,6 +18,9 @@ Evidence funnel - juice-shop-lab-hackerone
   dropped: DISCARDED 1, rejected 2
 ```
 
+The other three leads were never tested: two needed a fresh account that only the hunter can create,
+and one was a chain the run deferred because another finding already proved the same takeover.
+
 Juice Shop is vulnerable on purpose, so most leads hold up. On a real program the funnel is much
 narrower.
 

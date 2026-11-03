@@ -18,13 +18,15 @@ bountyproof drives an AI agent that can send network requests. Use it only where
 6. **Respect each program's AI clause.** Disclose AI assistance when a program asks for it. If a
    program restricts AI use, don't send its data to third-party models.
 7. **A human submits every report.** The agent drafts and reviews; a person reads the report,
-   reproduces what matters, and decides whether to send it.
+   reproduces what matters, and decides whether to send it. When form filling is on, the agent types
+   the report into the platform's form in your own signed-in Chrome and stops before submit; the
+   scope guard asks you before any click the agent describes as a submit.
 8. **Keep private programs private.** Workspaces for private programs stay on your machine. Never
    push them to a public remote.
 
 ## What bountyproof deliberately doesn't do
 
-- It doesn't submit reports to any platform.
+- It doesn't submit reports to any platform. It can fill the form; pressing submit is yours.
 - It doesn't ship mass scanners or exploit kits.
 - It doesn't help disguise AI involvement in a report. The clarity pass makes a report shorter and
   more precise with the same facts; disclosure lines required by a program stay in.

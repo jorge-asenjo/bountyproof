@@ -107,7 +107,9 @@ def create(eng: Engagement, parent: Path, init_git: bool = True, hunter_profile:
 
 
 def _git(dest: Path, *args: str) -> int:
-    return subprocess.run(["git", *args], cwd=dest, capture_output=True, text=True).returncode
+    return subprocess.run(
+        ["git", *args], cwd=dest, capture_output=True, text=True, encoding="utf-8", errors="replace"
+    ).returncode
 
 
 def _git_init(dest: Path, eng: Engagement) -> None:
