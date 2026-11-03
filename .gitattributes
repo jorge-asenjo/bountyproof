@@ -1,3 +1,5 @@
 * text=auto eol=lf
 *.png binary
 *.ps1 text eol=crlf
+# Eval fixtures written by evals/generate.py
+evals/*/scaffold.sh linguist-generated=true
