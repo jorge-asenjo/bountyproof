@@ -1,7 +1,7 @@
 // scope-guard.mjs — PreToolUse hook: deterministic scope enforcement for live engagements.
 //
 // Reads notes/scope.json (filled in Phase 0) and, for every network command (curl, wget,
-// Invoke-WebRequest, scanners, inline python/node) and every Playwright navigation:
+// Invoke-WebRequest, scanners, inline python/node) and every Playwright or Claude in Chrome navigation:
 //   - DENY  when a destination host is out of scope (OOS wins over in-scope wildcards), or is an
 //           unlisted host under a `denyUnlisted` domain ("any *.acme.com not listed is OOS")
 //   - DENY  when an in-scope request is missing the program's UA tag / required headers
@@ -9,12 +9,19 @@
 //           — only if notes/scope.json confirmStateChanging is true (template default: false)
 //   - DENY  when the host is unknown (not in inScope / outOfScope / allowHosts): the agent resolves it
 //           (allowHosts / hunterInfra / inScope) or drops it
+//   - DENY  when Claude in Chrome opens an in-scope host. It drives the human's own Chrome (their
+//           sessions, no program UA tag) and is only for the platform's report form; the target is
+//           tested in the Playwright browser.
+//   - ASK   when Claude in Chrome clicks or presses a key it describes as a submit/send/publish.
+//           Pressing submit is the human's step. This reads the action_summary the agent writes, so
+//           it catches an honest mistake, not an agent set on hiding the click.
 // Every checked request is appended (secrets redacted) to notes/egress-log.jsonl.
 // The hook's "ask" still prompts in bypassPermissions mode (verified with Claude Code 2.1.299).
 //
 // Limits: it sees the command text, not what a script does at runtime (a .py file that opens its
 // own connections is invisible), and it doesn't see requests made from inside the page via
-// browser_evaluate. Fails open (logs the error) so a hook bug can't brick the session.
+// browser_evaluate / javascript_tool, or where a clicked link leads. Fails open (logs the error) so a
+// hook bug can't brick the session.
 //
 // The same file ships twice: inside the plugin (hooks/hooks.json) and copied into every workspace
 // (.claude/hooks/). When a workspace has its own copy, the plugin's copy steps aside so the
@@ -73,6 +80,9 @@ const PS_VAL = new Set(['uri', 'method', 'body', 'headers', 'useragent', 'outfil
   'credential', 'infile', 'form', 'certificate', 'certificatethumbprint', 'transferencoding',
   'maximumretrycount', 'retryintervalsec', 'authentication', 'token', 'custommethod', 'httpversion']);
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CHROME = 'mcp__claude-in-chrome__';
+const CHROME_PRESS = new Set(['left_click', 'double_click', 'triple_click', 'key']);
+const SUBMIT_RE = /\b(submit\w*|send(s|ing)?|publish\w*|env[ií]a\w*)\b/i;
 
 function readJson(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
@@ -248,6 +258,33 @@ function parseSegment(tool, args) {
   return r;
 }
 
+// Claude in Chrome tool calls as {name, input}; browser_batch carries several.
+function chromeActions(tname, ti) {
+  if (tname === `${CHROME}browser_batch`) {
+    return (Array.isArray(ti.actions) ? ti.actions : [])
+      .map(a => ({ name: String(a?.name || '').replace(CHROME, ''), input: a?.input || {} }));
+  }
+  return [{ name: tname.slice(CHROME.length), input: ti }];
+}
+
+// Pressing submit on the platform's report form is the human's step.
+function submitGate(input) {
+  const tname = input.tool_name || '';
+  if (!tname.startsWith(CHROME)) return null;
+  const press = chromeActions(tname, input.tool_input || {}).find(a =>
+    a.name === 'computer' && CHROME_PRESS.has(a.input.action) && SUBMIT_RE.test(String(a.input.action_summary || '')));
+  if (!press) return null;
+  const what = String(press.input.action_summary).slice(0, 200);
+  log({ tool: tname, decision: 'ask', reasons: [`possible submit: ${what}`] });
+  return {
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'ask',
+      permissionDecisionReason: `[scope-guard] "${what}" looks like sending the report. Pressing submit is your step: deny this and press it yourself in Chrome after reading the form. Allow only if it just opens an empty form.`,
+    },
+  };
+}
+
 function decide(input, scope) {
   const tname = input.tool_name || '';
   const ti = input.tool_input || {};
@@ -258,6 +295,14 @@ function decide(input, scope) {
     if (!ti.url) return null;
     raw = `${tname} ${ti.url}`;
     reqs.push({ tool: 'browser', dests: [ti.url], mentions: [], ua: '(browser)', headers: [], method: 'GET', body: '', hasBody: false });
+  } else if (tname.startsWith(CHROME)) {
+    const urls = chromeActions(tname, ti)
+      .filter(a => a.name === 'navigate' && a.input.url && !/^(back|forward)$/i.test(String(a.input.url).trim()))
+      .map(a => String(a.input.url).trim())
+      .map(u => (/^[a-z][a-z0-9+.-]*:\/\//i.test(u) ? u : `https://${u}`)); // the extension defaults to https
+    if (!urls.length) return null;
+    raw = `${tname} ${urls.join(' ')}`;
+    reqs.push({ tool: 'chrome', dests: urls, mentions: [], ua: '(chrome)', headers: [], method: 'GET', body: '', hasBody: false });
   } else {
     raw = String(ti.command || '');
     if (confirmsScope(raw, tname === 'PowerShell')) {
@@ -308,6 +353,7 @@ function decide(input, scope) {
       if (cls === 'OOS') { deny.push(`${host} is OUT OF SCOPE (notes/scope.json outOfScope). Do not send requests there.`); continue; }
       if (cls === 'OOS_UNLISTED') { deny.push(`${host} is not listed in inScope and its domain is under denyUnlisted (unlisted hosts = out of scope). Do not send requests there.`); continue; }
       if (cls === 'UNKNOWN') { deny.push(`${host} is not in notes/scope.json. Non-target helper (docs/CDN) → add to allowHosts; your OOB → hunterInfra; listed by the program → inScope; otherwise drop it.`); continue; }
+      if (cls === 'IN_SCOPE' && r.tool === 'chrome') { deny.push(`${host} is the target. Claude in Chrome drives your own Chrome (your sessions, no program UA tag) and is only for the platform's report form. Test the target in the Playwright browser.`); continue; }
       if (cls === 'IN_SCOPE' && staleConfirm) {
         deny.push(`Scope not confirmed for the current notes/scope.json (it changed, or was never confirmed). Review inScope/outOfScope, then run \`bountyproof scope confirm\` (or tools/scripts/confirm-scope.ps1) before testing ${host}. requireConfirm=true blocks live in-scope testing until confirmed.`);
         continue;
@@ -343,8 +389,10 @@ process.stdin.on('data', c => (buf += c)).on('end', () => {
   try {
     const input = JSON.parse(buf);
     const scope = readJson(SCOPE_FILE);
-    if (!scope || scope.enforce === false || !(scope.inScope || []).length) process.exit(0);
-    const out = decide(input, scope);
+    if (!scope) process.exit(0);
+    const gate = submitGate(input);
+    const scoped = scope.enforce === false || !(scope.inScope || []).length ? null : decide(input, scope);
+    const out = scoped?.hookSpecificOutput.permissionDecision === 'deny' ? scoped : gate || scoped;
     if (out) process.stdout.write(JSON.stringify(out));
     process.exit(0);
   } catch (e) {

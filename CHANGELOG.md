@@ -27,3 +27,10 @@ First public release.
 - Radar: GitHub Actions templates that watch platforms and score new programs.
 - Demo lab with OWASP Juice Shop.
 - Seed eval suite for the evidence judge (7 cases) with first results in the README.
+- Phase 4d, `/bountyproof:fill`: a READY report goes into the platform's form in your own Chrome
+  with the Claude in Chrome extension, and stops before submit. On by default, also at the end of
+  `/bountyproof:hunt`; `bountyproof onboard --no-chrome-fill` turns it off, and each workspace has
+  its own switch in `notes/hunter-profile.md`.
+- Scope guard: checks Claude in Chrome navigations too, blocks them from in-scope hosts (that
+  browser is for the report form; the target is tested in Playwright), and asks the human before a
+  click the agent describes as a submit.

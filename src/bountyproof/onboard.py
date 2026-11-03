@@ -50,6 +50,10 @@ def _number(question: str, default: int) -> int:
         print("  A whole number, please.")
 
 
+def _yes(question: str) -> bool:
+    return input(f"\n{question} [Y/n] ").strip().lower() not in ("n", "no")
+
+
 def _parse_platforms(values: list[str] | None) -> dict[str, str] | None:
     if values is None:
         return None
@@ -123,6 +127,10 @@ def collect(args: argparse.Namespace, box: machine.Machine, interactive: bool) -
     min_bounty = args.min_bounty
     if min_bounty is None:
         min_bounty = _number("Smallest top bounty worth your time (EUR or USD)?", 500) if interactive else 500
+    chrome_fill = args.chrome_fill
+    if chrome_fill is None:
+        question = "Fill the report form for you in Chrome (Claude in Chrome extension)? You still press submit."
+        chrome_fill = _yes(question) if interactive else True
     workspaces = args.workspaces or str(profile.default_workspaces())
 
     return Profile(
@@ -132,6 +140,7 @@ def collect(args: argparse.Namespace, box: machine.Machine, interactive: bool) -
         limits=limits,
         hours_per_week=hours,
         min_bounty=min_bounty,
+        chrome_fill=chrome_fill,
         workspaces_dir=str(Path(workspaces).expanduser().resolve()),
         timezone=profile.utc_offset(),
         machine=asdict(box),
@@ -174,8 +183,15 @@ def next_steps(prof: Profile) -> str:
     lines += [
         "  When an alert arrives, paste its command. It creates the workspace and starts the agents:",
         f'    bountyproof start "Program name" --platform {platform} --url <program URL>',
-        "  You approve the scope. The agents hunt, prove and draft the report. You press submit.",
     ]
+    if prof.chrome_fill:
+        lines += [
+            "  You approve the scope. The agents hunt, prove, draft the report and fill the platform's form",
+            "  in your Chrome. You press submit. That last step needs the Claude in Chrome extension: install",
+            "  it from the Chrome Web Store, sign in to your platforms in Chrome, and run /chrome in Claude Code.",
+        ]
+    else:
+        lines.append("  You approve the scope. The agents hunt, prove and draft the report. You press submit.")
     return "\n".join(lines)
 
 

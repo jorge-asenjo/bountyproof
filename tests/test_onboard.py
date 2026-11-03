@@ -43,13 +43,14 @@ def test_detect_saves_nothing(laptop, capsys):
 
 
 def test_interactive_answers(laptop, monkeypatch, tmp_path):
-    answers = iter(["3", "jdoe", "", "1,2", "0", "", "1000", "n"])  # radar declined at the end
+    answers = iter(["3", "jdoe", "", "1,2", "0", "", "1000", "n", "n"])  # no Chrome form fill, no radar
     monkeypatch.setattr("builtins.input", lambda _="": next(answers))
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     assert cli.main(["onboard", "--workspaces", str(tmp_path)]) == 0
     prof = profile.load()
     assert prof.platforms == {"hackerone": "jdoe"}
     assert prof.focus == ["web", "api"] and prof.limits == [] and prof.min_bounty == 1000
+    assert prof.chrome_fill is False
 
 
 def test_capabilities_follow_the_machine():
@@ -91,6 +92,17 @@ def test_new_workspace_gets_profile_folder_and_notes(laptop, tmp_path):
     ws = tmp_path / "bounties" / "acme-hackerone"  # the only platform in the profile
     notes = (ws / "notes" / "hunter-profile.md").read_text(encoding="utf-8")
     assert "HackerOne: `jdoe`" in notes and "| Android apps | ready |" in notes
+    assert "- Fill with Claude in Chrome: on" in notes  # the default
+
+
+def test_chrome_form_fill_is_on_by_default_and_can_be_turned_off(laptop, tmp_path, capsys):
+    cli.main(["onboard", "--yes", "--platform", "none", "--workspaces", str(tmp_path)])
+    assert profile.load().chrome_fill is True
+    assert "fill the platform's form" in capsys.readouterr().out
+    cli.main(["onboard", "--yes", "--platform", "none", "--no-chrome-fill", "--workspaces", str(tmp_path)])
+    prof = profile.load()
+    assert prof.chrome_fill is False
+    assert "- Fill with Claude in Chrome: off" in profile.hunter_notes(prof)
 
 
 def test_radar_write_only_watches_your_platforms(tmp_path):

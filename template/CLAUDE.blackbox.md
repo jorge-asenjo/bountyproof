@@ -36,7 +36,8 @@ The hard rules below are program rules, not approvals: they always apply.
 4. **Honor the program's required headers.** Set the UA tag in `.mcp.json` (browser) and on every
    curl (`-A "..."`). The hook blocks in-scope requests that lack `uaTag` / `requiredHeaders`.
 5. **No report without the full pipeline.** Every finding goes judge (03b) → v1 draft (04) →
-   clarity pass (05) → pre-submit review (06). The agent never submits; the human does.
+   clarity pass (05) → pre-submit review (06) → form filled (06b). The agent never submits; the
+   human presses submit.
 6. **One report before feedback.** The first report on a program calibrates. Max 1-2 open, then wait.
 7. **Never inflate CVSS.** Conservative. Guessing IDs/tokens with no enumeration path → `AC:H`.
 8. **No report without a replayable PoC and evidence** showing the request, the response and the result.
@@ -64,7 +65,7 @@ The hard rules below are program rules, not approvals: they always apply.
 
 ## Guardrails (automated)
 - **`scope-guard` hook** (`.claude/hooks/scope-guard.mjs`, before every Bash/PowerShell command and
-  every Playwright navigation): out-of-scope host → blocked; in-scope request without the UA tag or
+  every Playwright or Claude in Chrome navigation): out-of-scope host → blocked; in-scope request without the UA tag or
   required headers → blocked; host not in `notes/scope.json` → blocked (add it to allowHosts,
   hunterInfra or inScope, or drop it); state-changing request → asks only if `confirmStateChanging`
   is true; with `requireConfirm: true` (the default here), all live testing waits for the human to
@@ -72,6 +73,9 @@ The hard rules below are program rules, not approvals: they always apply.
   Every checked request goes to `notes/egress-log.jsonl` (secrets redacted). The hook is inactive
   until `inScope` is filled in Phase 0. It can't see inside scripts that open their own connections
   or in-page fetches: those stay under rule 1.
+- **Two browsers.** Playwright (`.mcp.json`) tests the target: its own profile, the program UA.
+  Claude in Chrome is the human's own Chrome, for the platform's report form only: the hook blocks
+  it from in-scope hosts, and asks the human before any click described as a submit.
 
 ## Phases
 
@@ -85,6 +89,7 @@ The hard rules below are program rules, not approvals: they always apply.
 | 4a Draft | `/bountyproof:draft <ID>` | `prompts/04-write-report-v1.md` | `reports/<ID>-v1.md` |
 | 4b Clarity | `/bountyproof:clarity <ID>` | `prompts/05-clarity-pass.md` | `reports/<ID>-v2.md` |
 | 4c Review | `/bountyproof:review <ID>` | `prompts/06-pre-submit-review.md` | READY / NEEDS FIXES / DO NOT SUBMIT |
+| 4d Fill | `/bountyproof:fill <ID>` | `prompts/06b-fill-report-form.md` | the platform's form filled in your Chrome, not sent |
 | 5 Calibrate | `/bountyproof:calibrate` | `prompts/07-post-feedback-calibrate.md` | `notes/lessons.md` |
 
 Without the plugin, just say "Run Phase N" and follow the prompt file.

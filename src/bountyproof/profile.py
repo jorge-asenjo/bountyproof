@@ -55,6 +55,7 @@ class Profile:
     limits: list[str] = field(default_factory=list)
     hours_per_week: int = 10
     min_bounty: int = 500
+    chrome_fill: bool = True  # fill the platform's report form in the hunter's Chrome (Claude in Chrome)
     workspaces_dir: str = ""
     timezone: str = ""
     machine: dict = field(default_factory=dict)
@@ -237,5 +238,28 @@ def hunter_notes(prof: Profile) -> str:
         f"- Can't: {'; '.join(can_not) or 'nothing recorded'}.",
         f"- Minimum worthwhile reward: {prof.min_bounty:,} (EUR or USD).",
         "",
+        "## Report form",
+        "",
+        *report_form(prof.chrome_fill),
+        "",
     ]
     return "\n".join(lines)
+
+
+def report_form(on: bool) -> list[str]:
+    """The workspace switch prompts/06b-fill-report-form.md reads (missing line = on)."""
+    if on:
+        return [
+            "- Fill with Claude in Chrome: on",
+            "",
+            "When a report is READY, the agent opens the platform's report form in your Chrome with the",
+            "Claude in Chrome extension, fills it from `reports/<ID>-v2.md` and stops. You read it and press",
+            "submit. Write `off` above to copy and paste by hand in this workspace; run",
+            "`bountyproof onboard --no-chrome-fill` to change it for new workspaces.",
+        ]
+    return [
+        "- Fill with Claude in Chrome: off",
+        "",
+        "The agent hands over `reports/<ID>-v2.md` for you to paste into the form. `/bountyproof:fill <ID>`",
+        "still fills it in your Chrome when you ask. Write `on` above to make it the default here.",
+    ]

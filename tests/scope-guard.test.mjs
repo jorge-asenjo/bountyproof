@@ -107,6 +107,37 @@ test('Playwright navigation is checked (no UA requirement in the browser)', () =
   assert.equal(decide(nav('https://app.example.com/')).decision, 'allow');
 });
 
+const chrome = (name, input) => ({ tool_name: `mcp__claude-in-chrome__${name}`, tool_input: input });
+const press = action_summary => ({ action: 'left_click', coordinate: [10, 10], tabId: 1, action_summary });
+const click = action_summary => ({ name: 'computer', input: press(action_summary) });
+
+test('Claude in Chrome may open the platform, never the target or an out-of-scope host', () => {
+  assert.equal(decide(chrome('navigate', { url: 'https://hackerone.com/example/reports/new' })).decision, 'allow');
+  assert.equal(decide(chrome('navigate', { url: 'app.intigriti.com/researcher' })).decision, 'allow'); // no scheme
+  const target = decide(chrome('navigate', { url: 'https://app.example.com/' }));
+  assert.equal(target.decision, 'deny');
+  assert.match(target.reason, /Playwright/);
+  assert.equal(decide(chrome('navigate', { url: 'admin.example.com' })).decision, 'deny');
+  assert.equal(decide(chrome('navigate', { url: 'https://unknown.vendor.test/' })).decision, 'deny');
+  assert.equal(decide(chrome('navigate', { url: 'back', tabId: 1 })).decision, 'allow');
+  const batch = [{ name: 'navigate', input: { url: 'https://yeswehack.com/', tabId: 1 } },
+    { name: 'navigate', input: { url: 'https://app.example.com/', tabId: 1 } }];
+  assert.equal(decide(chrome('browser_batch', { actions: batch })).decision, 'deny');
+});
+
+test('a Claude in Chrome click described as a submit asks the human', () => {
+  assert.equal(decide(chrome('computer', press('Submits the report to the program'))).decision, 'ask');
+  assert.equal(decide(chrome('computer', { action: 'key', text: 'Return', tabId: 1, action_summary: 'Sends the report' })).decision, 'ask');
+  assert.equal(decide(chrome('browser_batch', { actions: [click('Opens the weakness dropdown'), click('Publishes the report')] })).decision, 'ask');
+  assert.equal(decide(chrome('computer', press('Opens the weakness dropdown'))).decision, 'allow');
+  assert.equal(decide(chrome('computer', { action: 'type', text: 'I sent a request', tabId: 1, action_summary: 'Types the impact, which mentions sending' })).decision, 'allow');
+  assert.equal(decide(chrome('computer', { action: 'screenshot', tabId: 1 })).decision, 'allow');
+  // the submit gate holds even before Phase 0 fills inScope, and a scope deny still wins over it
+  assert.equal(decide(chrome('computer', press('Submits the report')), { ...BASE, inScope: [] }).decision, 'ask');
+  const both = [{ name: 'navigate', input: { url: 'https://admin.example.com/', tabId: 1 } }, click('Submits the report')];
+  assert.equal(decide(chrome('browser_batch', { actions: both })).decision, 'deny');
+});
+
 test('requireConfirm blocks until the current scope hash is confirmed', () => {
   const unconfirmed = { ...BASE, requireConfirm: true };
   assert.equal(decide(curl('https://app.example.com/'), unconfirmed).decision, 'deny');
