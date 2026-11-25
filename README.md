@@ -43,7 +43,7 @@ dependencies.
 | **You** | Approve the scope. Press submit. |
 
 <p align="center">
-  <img src="docs/assets/architecture.svg" alt="Orchestrator, read-only hunters, case file, validator, evidence judge, human submit" width="100%">
+  <img src="docs/assets/how-it-works.svg" alt="How bountyproof works: Radar alerts you, you approve the scope, then inside the scope guard Recon, Hunters, Validator, Judge and Writer run on their own (22 leads, 17 reproduced, 16 passed in a real run), and you press submit" width="100%">
 </p>
 
 ## From zero to your first report

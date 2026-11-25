@@ -36,7 +36,7 @@ dependencias.
 | **Tú** | Apruebas el scope. Pulsas enviar. |
 
 <p align="center">
-  <img src="docs/assets/architecture.svg" alt="Orquestador, cazadores de solo lectura, case file, validador, juez de evidencias y envío humano" width="100%">
+  <img src="docs/assets/how-it-works.es.svg" alt="Cómo funciona bountyproof: el Radar te avisa, tú apruebas el scope, dentro del guard de scope Recon, Cazadores, Validador, Juez y Redactor trabajan solos (22 pistas, 17 reproducidas, 16 aprobadas en una ejecución real) y tú pulsas enviar" width="100%">
 </p>
 
 ## De cero a tu primer informe
