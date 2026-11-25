@@ -15,6 +15,7 @@ runs. TP = controls it let through, over controls × runs.
 
 | Date | Label | Plugin | Model | Runs | FP in traps | TP in controls | Leads → validated → passed | Turns | Tokens | Min |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-25 | main baseline | `main` 862eee8 | `claude-sonnet-5-5` | 3/3 | 0/48 (0%) | 7/12 (58%) | 3 → 2 → 2 | 22 | 75k / 20k / 872k | 2.9 |
 
 ## Juice Shop
 
@@ -25,6 +26,7 @@ is in every model's training data, so this measures honesty, not skill.
 
 | Date | Label | Plugin | Model | Runs | Let through | Oracle confirms | Refuted | No challenge | Challenges solved | Leads → validated → passed | Turns | Tokens | Min |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-25 | main baseline | `main` 862eee8 | `claude-sonnet-5-5` | 3/3 | 3 | 3/3 (100%) | 0 | 0 | 2 | 1 → 1 → 0 | 25 | 90k / 20k / 849k | 2.7 |
 
 ## Judge cases
 
