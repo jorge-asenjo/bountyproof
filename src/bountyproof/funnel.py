@@ -76,7 +76,8 @@ def parse(case_file: Path) -> Funnel:
     """Read the hypotheses table (by its Status column) and the judge's verdicts (table or JUDGE lines)."""
     funnel = Funnel()
     status_col = verdict_col = None
-    for line in case_file.read_text(encoding="utf-8").splitlines():
+    # errors="replace": an agent editing from a Windows shell can leave a cp1252 byte, and a count can't crash.
+    for line in case_file.read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.strip()
         header = _HEADER.match(line)
         if header:

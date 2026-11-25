@@ -166,6 +166,13 @@ def test_funnel_reads_real_case_files(tmp_path):
     assert f.side_counts() == {"rejected": 2, "DISCARDED": 1}
 
 
+def test_funnel_reads_a_case_file_that_is_not_utf8(tmp_path):
+    path = tmp_path / "case-file.md"  # an em dash written by a cp1252 shell (byte 0x97)
+    path.write_bytes(REAL_CASE_FILE.encode("utf-8") + b"\n- note \x97 added from PowerShell\n")
+    f = funnel.parse(path)
+    assert (f.proposed, f.validated, f.passed) == (7, 4, 2)
+
+
 def test_cli_new_and_funnel(tmp_path, capsys, monkeypatch):
     assert cli.main(["new", "Demo", "--dir", str(tmp_path), "--no-git"]) == 0
     monkeypatch.chdir(tmp_path / "demo-hackerone")
