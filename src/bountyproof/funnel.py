@@ -67,8 +67,9 @@ class Funnel:
 
 
 def _status(cell: str) -> str:
+    # "confirmed: A reads B's invoice" is confirmed: agents often add the reason after a colon.
     words = re.sub(r"[*`]", "", cell).split()
-    return words[0] if words else "candidate"
+    return words[0].rstrip(":;,.") if words else "candidate"
 
 
 def parse(case_file: Path) -> Funnel:
