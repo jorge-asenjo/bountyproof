@@ -56,6 +56,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--keep", action="store_true", help="keep the temporary workspaces")
     p.add_argument("--no-baseline", action="store_true", help="don't add a row to evals/BASELINE.md")
     p.add_argument("--summarize", metavar="RUNS_JSONL", help="re-read a runs.jsonl and print (and record) its summary")
+    p.add_argument(
+        "--regrade",
+        metavar="RESULTS_DIR",
+        help="grade the hunts saved in a results folder again (after a grader fix), then record the summary",
+    )
     return p
 
 
@@ -66,9 +71,17 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.runs < 1:
         raise SystemExit("--runs must be at least 1")
-    if args.summarize:
-        path = Path(args.summarize)
+    if args.summarize or args.regrade:
+        path = Path(args.summarize) if args.summarize else Path(args.regrade) / "runs.jsonl"
         records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        if any(r.get("suite", args.suite) != args.suite for r in records):
+            raise SystemExit(f"{path} holds runs of another suite than {args.suite}")
+        if args.regrade:
+            backup = path.with_name("runs.before-regrade.jsonl")
+            if not backup.exists():
+                shutil.copyfile(path, backup)
+            records = suites.regrade(path.parent, records)
+            path.write_text("".join(json.dumps(rec) + "\n" for rec in records), encoding="utf-8")
         return _finish(args, records, path.parent, records[0].get("plugin", {}) if records else {})
 
     turns, timeout, port = DEFAULTS[args.suite]
@@ -117,7 +130,7 @@ def _finish(args, records: list[dict], out: Path, info: dict) -> int:
     print(json.dumps(summary, indent=2))
     meta = {
         "date": (records[0].get("started", "") if records else "")[:10],
-        "label": args.label,
+        "label": args.label or (records[0].get("label", "") if records else ""),
         "plugin": info,
         "model": records[0].get("model", args.model) if records else args.model,
     }
