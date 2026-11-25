@@ -133,6 +133,8 @@ REAL_CASE_FILE = """
 | H-011b | xss | products | anon -> users | low | **rejected** (sanitised) | R1-V3 |
 | H-012 | logic | checkout | customer | med | **confirmed (incidental)** | - |
 | H-013 | idor | orders | A -> B | high | candidate | HUMAN |
+| H-014 | idor | invoices | A -> B | high | confirmed: A reads B's invoice | R2 |
+| H-015 | xss | search | anon | low | rejected: output escaped. | R2 |
 
 ## 6. Judge verdicts
 | ID | Verdict | CVSS 3.1 | Note |
@@ -156,10 +158,12 @@ def test_funnel_reads_real_case_files(tmp_path):
         "H-011b": "rejected",
         "H-012": "confirmed",
         "H-013": "candidate",
+        "H-014": "confirmed",  # a reason after a colon doesn't hide the status
+        "H-015": "rejected",
     }
     assert f.judged == {"H-001": "PASS", "H-011a": "PASS", "H-012": "DISCARD"}  # unknown / rejected IDs ignored
-    assert (f.proposed, f.validated, f.passed) == (5, 3, 2)
-    assert f.side_counts() == {"rejected": 1, "DISCARDED": 1}
+    assert (f.proposed, f.validated, f.passed) == (7, 4, 2)
+    assert f.side_counts() == {"rejected": 2, "DISCARDED": 1}
 
 
 def test_cli_new_and_funnel(tmp_path, capsys, monkeypatch):
