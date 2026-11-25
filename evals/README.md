@@ -13,7 +13,8 @@ Each suite run adds a row to [BASELINE.md](BASELINE.md). Raw results (transcript
 reports, the target's request log) go to `evals/results/<suite>/<timestamp>-<model>/`, which is
 gitignored. Useful flags: `--plugin-ref main` (test a git ref instead of the working tree),
 `--model` (default `claude-sonnet-5-5`, recorded in every row), `--parallel N`, `--label`,
-`--no-browser`, `--arms with` (judge suite, half the cost) and `--summarize runs.jsonl`.
+`--no-browser`, `--arms with` (judge suite, half the cost), `--summarize runs.jsonl` and
+`--regrade <results folder>` (grade saved hunts again after a grader fix, without hunting again).
 
 ## What a hunt run does (traps and juice)
 
@@ -96,6 +97,8 @@ local `.venv`). Its sandbox doesn't exist on native Windows, which is fine here:
 - A hunt is non-deterministic: compare medians over three runs or more, not single runs.
 - The runner measures the case file's format too: verdicts written as prose instead of
   `JUDGE H-00X: …` still count, and are reported, because `bountyproof funnel` can't read them.
+  Findings are read by their ID (`H-001` from the case file, or `F-`, `L-`, `C-`, `V-001` when a
+  hunt logs them its own way), and every file in `reports/` counts as a report, ID or not.
 
 The trap-app idea and the Juice Shop oracle come from
 [Claude-BugHunter](https://github.com/elementalsouls/Claude-BugHunter)'s `eval/` (MIT); this is new

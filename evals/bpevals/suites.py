@@ -165,6 +165,7 @@ def juice_run(cfg: Config, plugin: Path, idx: int) -> dict:
             json.dumps({"before": sorted(juice.solved(before)), "after": sorted(juice.solved(after))}, indent=2),
             encoding="utf-8",
         )
+        (run_dir / "challenges.json").write_text(json.dumps(after), encoding="utf-8")  # for --regrade
         rec.update(_summary_fields(result, fun, findings))
         rec["port"] = port
         rec["grade"] = graded
@@ -183,6 +184,38 @@ def juice_run(cfg: Config, plugin: Path, idx: int) -> dict:
 def run_hunts(cfg: Config, plugin: Path, fn) -> list[dict]:
     with ThreadPoolExecutor(max_workers=max(cfg.parallel, 1)) as pool:
         return list(pool.map(lambda i: fn(cfg, plugin, i), range(1, cfg.runs + 1)))
+
+
+def _jsonl(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def regrade(out: Path, records: list[dict], classifier_model: str = "haiku") -> list[dict]:
+    """Grade saved hunts again from what each one left in its results folder, after a grader fix: no new
+    hunt. Traps use run-N/workspace and app-requests.jsonl; juice also needs oracle.json and challenges.json."""
+    for rec in records:
+        if "grade" not in rec:
+            continue
+        run_dir = out / f"run-{rec['run']}"
+        findings, fun = casefile.read(run_dir / "workspace")
+        rec["funnel"] = casefile.eval_funnel(findings, fun)
+        rec["reports"] = sorted({name for f in findings for name in f.reports})
+        if rec["suite"] == "traps":
+            events = _jsonl(run_dir / "app-requests.jsonl")
+            rec["grade"] = grade.grade_traps(findings, rec["grade"]["ground_truth"], events)
+        else:
+            oracle = json.loads((run_dir / "oracle.json").read_text(encoding="utf-8"))
+            chs = json.loads((run_dir / "challenges.json").read_text(encoding="utf-8"))
+            claimed = [f for f in findings if f.let_through]
+            with tempfile.TemporaryDirectory(prefix="bp-regrade-") as tmp:
+                mapping = juice.map_findings(claimed, chs, model=classifier_model, cwd=Path(tmp))
+            rec["grade"] = grade.grade_juice(
+                findings, mapping, set(oracle["before"]), set(oracle["after"]), juice.catalogue(chs)
+            )
+        rec["regraded"] = _now()
+    return records
 
 
 # ------------------------------------------------------------------------------------------------ judge

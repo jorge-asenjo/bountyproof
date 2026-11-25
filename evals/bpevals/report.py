@@ -22,6 +22,15 @@ def _tokens(n: float | None) -> str:
     return f"{n / 1e6:.1f}M" if n >= 1e6 else f"{n / 1e3:.0f}k"
 
 
+def _span(windows: list) -> float | None:
+    """Plan usage from the first run's start to the last run's end; None if the window reset in between."""
+    windows = [w for w in windows if w]
+    if not windows:
+        return None
+    span = round(max(w["last"] for w in windows) - min(w["first"] for w in windows), 3)
+    return span if span >= 0 else None
+
+
 def _hunt_stats(ok: list[dict]) -> dict:
     agents = [r["agent"] for r in ok]
     return {
@@ -40,7 +49,13 @@ def _hunt_stats(ok: list[dict]) -> dict:
         "plan_5h_used_median": _median(
             [round(w["last"] - w["first"], 3) for a in agents if (w := (a.get("plan_usage") or {}).get("five_hour"))]
         ),
+        # Runs in parallel share the window, so the median above overlaps: this is the whole suite's span.
+        "plan_5h_used_total": _span([(a.get("plan_usage") or {}).get("five_hour") for a in agents]),
         "funnel_median": {k: _median([r["funnel"][k] for r in ok]) for k in ("proposed", "validated", "passed")},
+        # What `bountyproof funnel` shows. A gap with the line above: the hunt drifted from the case-file format.
+        "funnel_strict_median": {
+            k: _median([r["funnel"].get(f"{k}_strict") for r in ok]) for k in ("proposed", "validated", "passed")
+        },
         "loose_verdicts": sum(r["grade"].get("loose_verdicts", 0) for r in ok if "grade" in r),
         "incomplete": [
             {"run": r["run"], "why": r["agent"].get("error") or r["agent"].get("subtype")}

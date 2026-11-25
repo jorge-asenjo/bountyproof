@@ -15,21 +15,28 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from bountyproof import funnel  # noqa: E402
 
-_ID = re.compile(r"\bH-(\d+)([a-z]?)\b", re.IGNORECASE)
-_HEADING = re.compile(r"^(#{2,6})\s*[*_`]*\s*(H-\d+[a-z]?\b.*)$", re.IGNORECASE)
+# A finding ID. The case file's own are H-001; hunts also write F-001 (finding), L-, C- or V-001.
+_ID = re.compile(r"\b([HFLCV])-(\d+)([a-z]?)\b", re.IGNORECASE)
+_ONE_ID = r"[HFLCV]-\d+[a-z]?"
+_HEADING = re.compile(rf"^(#{{2,6}})\s*[*_`]*\s*({_ONE_ID}\b.*)$", re.IGNORECASE)
 _TABLE_HEADER = re.compile(r"^\|\s*ID\s*\|(.*)\|\s*$", re.IGNORECASE)
 _FIRST_CELL = re.compile(r"^\|([^|]*)\|")
 _REPORT_TITLE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
-# A verdict written as prose ("Final: H-001 PASS + READY") instead of `JUDGE H-001: PASS`. The ID can't
-# be part of a file name (reports/H-001-v2.md) and no other ID may sit between it and the verdict.
-_LOOSE_VERDICT = re.compile(r"\b(H-\d+[a-z]?)(?![\w./-])(?:(?!\bH-\d)[^|\n]){0,40}?\b(PASS|NEEDS_VALIDATION|DISCARD)\b")
+# A verdict written as prose ("Final: H-001 PASS + READY", "F-001, F-002: judge PASS") instead of
+# `JUDGE H-001: PASS`. The IDs can't be part of a file name (reports/H-001-v2.md) and no other ID may sit
+# between them and the verdict.
+_LOOSE_VERDICT = re.compile(
+    rf"\b({_ONE_ID}(?:\s*(?:,|/|&|\band\b)\s*{_ONE_ID})*)(?![\w./-])"
+    rf"(?:(?!\b{_ONE_ID})[^|\n]){{0,40}}?\b(PASS|NEEDS_VALIDATION|DISCARD)\b"
+)
+_VERSION = re.compile(r"[-_. ]?v\d+$", re.IGNORECASE)  # reports/<name>-v2.md
 _PLACEHOLDER_TITLE = re.compile(r"^<[^>]*>$")
 
 
 def key(hid: str) -> str:
-    """H-001, H-1 and h-001 are the same finding."""
+    """H-001, H-1 and h-001 are the same finding; F-001 is another one."""
     m = _ID.search(hid)
-    return f"H-{int(m.group(1))}{m.group(2).lower()}" if m else hid
+    return f"{m.group(1).upper()}-{int(m.group(2))}{m.group(3).lower()}" if m else hid
 
 
 @dataclass
@@ -136,7 +143,8 @@ def read(workspace: Path) -> tuple[list[Finding], funnel.Funnel]:
     # prose verdict counts, for findings that reached the judge, and the finding is flagged.
     loose: dict[str, str] = {}
     for m in _LOOSE_VERDICT.finditer(text):
-        loose[key(m.group(1))] = m.group(2)
+        for hid in _ID.finditer(m.group(1)):
+            loose[key(hid.group(0))] = m.group(2)
     for k, verdict in loose.items():
         f = found.get(k)
         if f and f.verdict is None and f.status not in ("rejected", "needs_validation"):
@@ -149,10 +157,9 @@ def read(workspace: Path) -> tuple[list[Finding], funnel.Funnel]:
     reports_dir = workspace / "reports"
     if reports_dir.is_dir():
         for path in sorted(reports_dir.glob("*.md")):
+            # Every report counts, whatever its name: one without a finding ID is graded on its own text.
             m = _ID.search(path.name)
-            if not m:
-                continue
-            f = get(m.group(0))
+            f = get(m.group(0) if m else "report:" + _VERSION.sub("", path.stem))
             f.reports.append(path.name)
             content = path.read_text(encoding="utf-8", errors="replace")
             title = _REPORT_TITLE.search(content)
@@ -167,14 +174,15 @@ def eval_funnel(findings: list[Finding], fun: funnel.Funnel) -> dict:
     """The funnel as it really went (statuses normalised, prose verdicts counted), next to what
     `bountyproof funnel` shows. A gap between the two means the hunt drifted from the case-file format."""
     return {
-        "proposed": fun.proposed,
+        "proposed": len(findings),
         "validated": sum(1 for f in findings if f.status in funnel.VALIDATED or f.verdict),
         "passed": sum(1 for f in findings if f.passed),
+        "proposed_strict": fun.proposed,
         "validated_strict": fun.validated,
         "passed_strict": fun.passed,
     }
 
 
-def _order(f: Finding) -> tuple[int, str]:
-    m = _ID.search(f.id)
-    return (int(m.group(1)), m.group(2)) if m else (10**9, f.id)
+def _order(f: Finding) -> tuple[str, int, str]:
+    m = _ID.fullmatch(f.id)
+    return (m.group(1).upper(), int(m.group(2)), m.group(3)) if m else ("~", 10**9, f.id)

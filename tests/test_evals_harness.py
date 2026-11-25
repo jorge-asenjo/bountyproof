@@ -73,11 +73,71 @@ def test_casefile_reads_statuses_verdicts_and_reports(tmp_path):
     assert by_id["H-4"].verdict is None  # rejected at validation: the judge line doesn't count
     assert "Apache/2.2.8" in by_id["H-3"].body
     funnel = casefile.eval_funnel(findings, fun)
-    assert funnel == {"proposed": 6, "validated": 4, "passed": 3, "validated_strict": 4, "passed_strict": 1}
+    assert funnel == {
+        "proposed": 6,
+        "validated": 4,
+        "passed": 3,
+        "proposed_strict": 6,
+        "validated_strict": 4,
+        "passed_strict": 1,
+    }
 
 
 def test_casefile_without_case_file(tmp_path):
     assert casefile.read(tmp_path)[0] == []
+
+
+# A hunt that left the hypotheses table as the template had it and logged its findings as F-001...
+HUNT_LOG_CASE_FILE = """# Case File
+
+## 2. Hypotheses (the work queue)
+
+| ID | Class | Shard / artifact | Trust boundary | Confidence | Status |
+|----|-------|------------------|----------------|------------|--------|
+| H-001 | | | | low/med/high | candidate |
+
+## 3. Evidence dossiers (one per hypothesis)
+
+### H-001 — <title>
+- **Affected asset / trust boundary:**
+
+## HUNT LOG 2026-11-25
+
+### F-001 IDOR: GET /api/invoices/{id} (CONFIRMED)
+- A reads B's invoice 5002.
+
+### F-002 SSRF: POST /api/import {url} (CONFIRMED)
+- The importer returns /internal/metadata.
+
+### Review status
+F-001, F-002: judge PASS; review READY. Reports: reports/F-00{1,2}-v2.md
+"""
+
+
+def make_hunt_log_workspace(root: Path) -> Path:
+    ws = root / "ws"
+    (ws / "notes").mkdir(parents=True)
+    (ws / "reports").mkdir()
+    (ws / "notes" / "case-file.md").write_text(HUNT_LOG_CASE_FILE, encoding="utf-8")
+    (ws / "reports" / "F-001-v2.md").write_text("# IDOR on /api/invoices\n", encoding="utf-8")
+    (ws / "reports" / "F-002-v2.md").write_text("# SSRF in the importer\n", encoding="utf-8")
+    (ws / "reports" / "comments-xss-v1.md").write_text("# Stored XSS in /api/comments\n", encoding="utf-8")
+    return ws
+
+
+def test_casefile_reads_other_prefixes_and_every_report(tmp_path):
+    findings, fun = casefile.read(make_hunt_log_workspace(tmp_path))
+    by_id = {f.id: f for f in findings}
+    assert set(by_id) == {"F-1", "F-2", "report:comments-xss"}  # the template's H-001 isn't a finding
+    assert by_id["F-1"].verdict == "PASS" and by_id["F-1"].verdict_loose  # "F-001, F-002: judge PASS"
+    assert by_id["F-2"].verdict == "PASS" and by_id["F-1"].reports == ["F-001-v2.md"]
+    assert by_id["report:comments-xss"].reported  # a report without an ID still counts
+    assert casefile.key("F-001") == "F-1" != casefile.key("H-001")
+    funnel = casefile.eval_funnel(findings, fun)
+    assert (funnel["proposed"], funnel["passed"], funnel["proposed_strict"], funnel["passed_strict"]) == (3, 2, 0, 0)
+    truth = {"control/idor-invoices": True, "control/ssrf-internal": True, "control/stored-xss-comments": False}
+    g = grade.grade_traps(findings, truth, [])
+    assert g["tp"] == ["control/idor-invoices", "control/stored-xss-comments", "control/ssrf-internal"]
 
 
 # --------------------------------------------------------------------------------------------- grade
@@ -352,6 +412,26 @@ def test_run_py_aliases_and_summarize(tmp_path, capsys):
     assert eval_run.main(["--suite", "traps", "--summarize", str(runs), "--no-baseline"]) == 0
     assert json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))["tp"] == 1
     assert "1/4 (25%)" in capsys.readouterr().out
+
+
+def test_regrade_reads_the_saved_runs_again(tmp_path, capsys):
+    out = tmp_path / "results"
+    shutil.copytree(make_hunt_log_workspace(tmp_path), out / "run-1" / "workspace")
+    (out / "run-1" / "app-requests.jsonl").write_text(json.dumps({"path": "/api/invoices/5002"}) + "\n")
+    old = {**_record(1, [], []), "suite": "traps", "label": "main baseline"}  # graded before: nothing found
+    old["grade"]["ground_truth"] = {"control/idor-invoices": True, "control/ssrf-internal": True}
+    (out / "runs.jsonl").write_text(json.dumps(old) + "\n", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        eval_run.main(["--suite", "juice", "--regrade", str(out), "--no-baseline"])
+    assert eval_run.main(["--suite", "traps", "--regrade", str(out), "--no-baseline"]) == 0
+    rec = json.loads((out / "runs.jsonl").read_text(encoding="utf-8"))
+    assert rec["grade"]["tp"] == ["control/idor-invoices", "control/stored-xss-comments", "control/ssrf-internal"]
+    assert rec["grade"]["tp_exercised"] == ["control/idor-invoices", "control/ssrf-internal"]
+    assert rec["funnel"]["proposed"] == 3 and "regraded" in rec
+    assert (out / "runs.before-regrade.jsonl").is_file()
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert summary["tp"] == 3 and summary["funnel_strict_median"]["passed"] == 0
+    assert "| main baseline |" in capsys.readouterr().out  # the label comes from the saved runs
 
 
 def test_trap_items_cover_the_plan():
