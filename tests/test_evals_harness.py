@@ -420,11 +420,14 @@ def test_regrade_reads_the_saved_runs_again(tmp_path, capsys):
     (out / "run-1" / "app-requests.jsonl").write_text(json.dumps({"path": "/api/invoices/5002"}) + "\n")
     old = {**_record(1, [], []), "suite": "traps", "label": "main baseline"}  # graded before: nothing found
     old["grade"]["ground_truth"] = {"control/idor-invoices": True, "control/ssrf-internal": True}
-    (out / "runs.jsonl").write_text(json.dumps(old) + "\n", encoding="utf-8")
+    old["error"] = "UnicodeDecodeError: the grader broke after the hunt"
+    lost = {**_record(2, [], [], "RuntimeError: scope guard not ready"), "suite": "traps"}  # never hunted
+    (out / "runs.jsonl").write_text(json.dumps(old) + "\n" + json.dumps(lost) + "\n", encoding="utf-8")
     with pytest.raises(SystemExit):
         eval_run.main(["--suite", "juice", "--regrade", str(out), "--no-baseline"])
-    assert eval_run.main(["--suite", "traps", "--regrade", str(out), "--no-baseline"]) == 0
-    rec = json.loads((out / "runs.jsonl").read_text(encoding="utf-8"))
+    assert eval_run.main(["--suite", "traps", "--regrade", str(out), "--no-baseline"]) == 1  # run 2 stays an error
+    rec, rec2 = (json.loads(line) for line in (out / "runs.jsonl").read_text(encoding="utf-8").splitlines())
+    assert "error" not in rec and rec2["error"].startswith("RuntimeError")
     assert rec["grade"]["tp"] == ["control/idor-invoices", "control/stored-xss-comments", "control/ssrf-internal"]
     assert rec["grade"]["tp_exercised"] == ["control/idor-invoices", "control/ssrf-internal"]
     assert rec["funnel"]["proposed"] == 3 and "regraded" in rec

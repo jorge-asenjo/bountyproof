@@ -73,12 +73,14 @@ def _hunt(cfg: Config, plugin: Path, ws: Path, env: dict, run_dir: Path) -> agen
     return agent.run(cmd, cwd=ws, env=env, timeout_s=cfg.timeout_s, transcript=run_dir / "transcript.jsonl")
 
 
-def _summary_fields(result: agent.AgentRun, fun, findings: list) -> dict:
+def _agent_fields(result: agent.AgentRun) -> dict:
     data = result.to_dict()
     final = data.pop("final_message", "")
+    return {"agent": data, "final_message_tail": final[-1500:]}
+
+
+def _found_fields(fun, findings: list) -> dict:
     return {
-        "agent": data,
-        "final_message_tail": final[-1500:],
         "funnel": casefile.eval_funnel(findings, fun),
         "reports": sorted({name for f in findings for name in f.reports}),
     }
@@ -113,15 +115,17 @@ def traps_run(cfg: Config, plugin: Path, idx: int) -> dict:
         files = programs.traps_files(server.port, accounts, UA, cfg.browser)
         ws = _prepare(cfg, plugin, tmp, "Acme Board", files, server.base_url, env)
         result = _hunt(cfg, plugin, ws, env, run_dir)
-        findings, fun = casefile.read(ws)
-        graded = grade.grade_traps(findings, server.state.ground_truth(), server.state.events)
+        # Keep the hunt's output before grading it: if the grader breaks, --regrade can grade it later.
+        rec.update(_agent_fields(result))
+        rec["port"] = server.port
+        rec["ground_truth"] = server.state.ground_truth()
         workspace.collect(ws, run_dir / "workspace")
         with (run_dir / "app-requests.jsonl").open("w", encoding="utf-8") as fh:
             for event in server.state.events:
                 fh.write(json.dumps(event) + "\n")
-        rec.update(_summary_fields(result, fun, findings))
-        rec["port"] = server.port
-        rec["grade"] = graded
+        findings, fun = casefile.read(ws)
+        rec["grade"] = grade.grade_traps(findings, rec["ground_truth"], server.state.events)
+        rec.update(_found_fields(fun, findings))
     except Exception as exc:  # one broken run must not lose the others
         rec["error"] = f"{type(exc).__name__}: {exc}"
     finally:
@@ -155,20 +159,22 @@ def juice_run(cfg: Config, plugin: Path, idx: int) -> dict:
         files = programs.juice_files(port, accounts, UA, cfg.browser)
         ws = _prepare(cfg, plugin, tmp, "Juice Shop Lab", files, base, env)
         result = _hunt(cfg, plugin, ws, env, run_dir)
+        rec.update(_agent_fields(result))  # as for traps: keep everything before grading
+        rec["port"] = port
         after = juice.challenges(base)
-        findings, fun = casefile.read(ws)
-        claimed = [f for f in findings if f.let_through]
-        mapping = juice.map_findings(claimed, after, model=cfg.classifier_model, cwd=tmp)
-        graded = grade.grade_juice(findings, mapping, juice.solved(before), juice.solved(after), juice.catalogue(after))
         workspace.collect(ws, run_dir / "workspace")
         (run_dir / "oracle.json").write_text(
             json.dumps({"before": sorted(juice.solved(before)), "after": sorted(juice.solved(after))}, indent=2),
             encoding="utf-8",
         )
-        (run_dir / "challenges.json").write_text(json.dumps(after), encoding="utf-8")  # for --regrade
-        rec.update(_summary_fields(result, fun, findings))
-        rec["port"] = port
-        rec["grade"] = graded
+        (run_dir / "challenges.json").write_text(json.dumps(after), encoding="utf-8")
+        findings, fun = casefile.read(ws)
+        claimed = [f for f in findings if f.let_through]
+        mapping = juice.map_findings(claimed, after, model=cfg.classifier_model, cwd=tmp)
+        rec["grade"] = grade.grade_juice(
+            findings, mapping, juice.solved(before), juice.solved(after), juice.catalogue(after)
+        )
+        rec.update(_found_fields(fun, findings))
     except Exception as exc:
         rec["error"] = f"{type(exc).__name__}: {exc}"
     finally:
@@ -196,15 +202,15 @@ def regrade(out: Path, records: list[dict], classifier_model: str = "haiku") -> 
     """Grade saved hunts again from what each one left in its results folder, after a grader fix: no new
     hunt. Traps use run-N/workspace and app-requests.jsonl; juice also needs oracle.json and challenges.json."""
     for rec in records:
-        if "grade" not in rec:
-            continue
         run_dir = out / f"run-{rec['run']}"
+        truth = rec.get("ground_truth") or rec.get("grade", {}).get("ground_truth")
+        if "agent" not in rec or not (run_dir / "workspace").is_dir() or (rec["suite"] == "traps" and truth is None):
+            continue  # the hunt itself didn't finish: nothing to grade
         findings, fun = casefile.read(run_dir / "workspace")
-        rec["funnel"] = casefile.eval_funnel(findings, fun)
-        rec["reports"] = sorted({name for f in findings for name in f.reports})
+        rec.update(_found_fields(fun, findings))
         if rec["suite"] == "traps":
             events = _jsonl(run_dir / "app-requests.jsonl")
-            rec["grade"] = grade.grade_traps(findings, rec["grade"]["ground_truth"], events)
+            rec["grade"] = grade.grade_traps(findings, truth, events)
         else:
             oracle = json.loads((run_dir / "oracle.json").read_text(encoding="utf-8"))
             chs = json.loads((run_dir / "challenges.json").read_text(encoding="utf-8"))
@@ -214,6 +220,7 @@ def regrade(out: Path, records: list[dict], classifier_model: str = "haiku") -> 
             rec["grade"] = grade.grade_juice(
                 findings, mapping, set(oracle["before"]), set(oracle["after"]), juice.catalogue(chs)
             )
+        rec.pop("error", None)  # the hunt had finished: the error was the grader's, and it's graded now
         rec["regraded"] = _now()
     return records
 
