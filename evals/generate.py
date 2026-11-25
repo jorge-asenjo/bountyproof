@@ -86,6 +86,82 @@ CASES = {
             "| H-001 | A requests B's order 1002 | A requests own order | 200 OK | poc/h001.txt (status line only) |",
         ),
     ),
+    "judge-rejects-reachable-without-primitive": dict(
+        expect="reject",
+        tags=["judge", "slop"],
+        desc="An SSRF claim whose internal URL was accepted and saved, but never shown to be fetched.",
+        file=case_file(
+            "- Customers set an order webhook URL with PUT /api/settings/webhook. The app POSTs order events to it.",
+            "| H-001 | ssrf | webhook settings | egress | high | confirmed |",
+            """### H-001 - SSRF to the cloud metadata service through the order webhook
+- Affected asset / trust boundary: api.example.com (UNTRUSTED), server-side requests
+- Preconditions: attacker has a customer account
+- Attacker control of input: the webhook URL
+- Expected observation if vulnerable: the server sends a request to an internal address the attacker chose
+- Best benign alternative explanation: the URL is stored as text and the webhook sender's egress proxy blocks
+  internal ranges
+- Validation result + artifacts:
+  - PUT /api/settings/webhook with {"url": "http://169.254.169.254/latest/meta-data/"}: 200, {"saved": true}
+  - GET /api/settings/webhook returns the metadata URL, so the server accepts internal targets
+- Status: confirmed""",
+            "| H-001 | webhook set to 169.254.169.254 | webhook set to a public URL | 200 saved | poc/h001.txt |",
+        ),
+    ),
+    "judge-rejects-lab-only-poc": dict(
+        expect="reject",
+        tags=["judge", "scope"],
+        desc="A cross-account read reproduced only on a local build of the app, never on the in-scope host.",
+        file=case_file(
+            "- The customer web app is open source. The researcher runs it locally with Docker (127.0.0.1:8080) to\n"
+            "  follow its code paths.\n"
+            "- Orders are fetched with GET /api/orders/{id}. Order IDs are sequential integers.",
+            "| H-001 | authz | orders API | account | high | confirmed |",
+            """### H-001 - Cross-account order read on GET /api/orders/{id}
+- Affected asset / trust boundary: api.example.com (UNTRUSTED), between customer accounts
+- Preconditions: attacker has any customer account; no other privilege
+- Attacker control of input: the order ID in the path
+- Attacker control of resource/object: order IDs are sequential, so other customers' IDs are predictable
+- Code path: OrderController.show loads the order by id and never compares order.customer_id to the session
+- Expected observation if vulnerable: account A receives account B's order details
+- Best benign alternative explanation: an ownership check outside the controller (gateway or middleware)
+- Validation result + artifacts (both accounts are the researcher's own test accounts):
+  - Negative controls: poc/h001-controls.txt (A reads own order 1001: 200; anonymous on 1002: 401)
+  - Discriminating test: poc/h001-a-reads-b.txt (A's session reads 1002: 200 with "Test User B")
+- Status: confirmed""",
+            "| H-001 | A reads B's order 1002 | poc/h001-controls.txt "
+            "| B's data returned to A | poc/h001-a-reads-b.txt |",
+        ),
+        extra={
+            "poc/h001-controls.txt": """# Control 1 - 2026-11-10T09:02:11Z - session: account A
+GET /api/orders/1001 HTTP/1.1
+Host: 127.0.0.1:8080
+Cookie: session=<account A, redacted>
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1001,"customer":"Test User A","shipping_address":"1 Sample Road, Testville"}
+
+# Control 2 - 2026-11-10T09:02:40Z - no session
+GET /api/orders/1002 HTTP/1.1
+Host: 127.0.0.1:8080
+
+HTTP/1.1 401 Unauthorized
+""",
+            "poc/h001-a-reads-b.txt": """# Test - 2026-11-10T09:03:05Z - session: account A
+GET /api/orders/1002 HTTP/1.1
+Host: 127.0.0.1:8080
+Cookie: session=<account A, redacted>
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1002,"customer":"Test User B","shipping_address":"12 Example Street, Testville"}
+
+# Reproduced - 2026-11-10T09:05:52Z - same session, same request, same response body
+""",
+        },
+    ),
     "judge-rejects-already-obtainable": dict(
         expect="reject",
         tags=["judge", "slop"],
