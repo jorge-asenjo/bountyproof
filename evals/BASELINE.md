@@ -35,3 +35,4 @@ plugin. A case is OK when every run with the plugin got the expected verdict.
 
 | Date | Label | Plugin | Model | Runs per arm | Cases OK | Correct runs with plugin | Without | Cost with plugin |
 |---|---|---|---|---|---|---|---|---|
+| 2026-11-26 | main baseline | `main` 862eee8 | `claude-sonnet-5-5` | 3 | 8/9 | 26/27 | 25/27 | $1.96 |
