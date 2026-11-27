@@ -9,17 +9,20 @@
 # lowercased, de-duplicated, ordinal-sorted, joined, then SHA-256 hex.
 [CmdletBinding()]
 param(
-  [string]$ScopeFile = (Join-Path $PSScriptRoot '..\..\notes\scope.json'),
+  [string]$ScopeFile = '',
   [switch]$Yes   # skip the interactive confirmation (for scripted setup)
 )
 
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell 5.1 can leave $PSScriptRoot empty in a parameter default, so resolve it here
+if (-not $ScopeFile) { $ScopeFile = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\..\notes\scope.json' }
 if (-not (Test-Path $ScopeFile)) { Write-Error "scope.json not found at $ScopeFile"; exit 1 }
-$scope = Get-Content -Raw $ScopeFile | ConvertFrom-Json
+$scope = [IO.File]::ReadAllText((Resolve-Path $ScopeFile)) | ConvertFrom-Json
 
 function Canon($arr) {
   $list = @()
-  foreach ($x in @($arr)) { $t = "$x".Trim().ToLower(); if ($t) { $list += $t } }
+  # ToLowerInvariant: ToLower() follows the system culture (a Turkish "I" would change the hash)
+  foreach ($x in @($arr)) { $t = "$x".Trim().ToLowerInvariant(); if ($t) { $list += $t } }
   $set = [System.Collections.Generic.HashSet[string]]::new([string[]]$list)
   $sorted = [string[]]@($set)
   [Array]::Sort($sorted, [StringComparer]::Ordinal)
@@ -51,5 +54,6 @@ if ($scope.PSObject.Properties.Name -notcontains 'confirmedScope') {
   $scope | Add-Member -NotePropertyName confirmedScope -NotePropertyValue ''
 }
 $scope.confirmedScope = $hash
-($scope | ConvertTo-Json -Depth 20) | Set-Content -Encoding UTF8 $ScopeFile
+# UTF-8 without a BOM: Windows PowerShell 5.1's Set-Content -Encoding UTF8 adds one
+[IO.File]::WriteAllText((Resolve-Path $ScopeFile), ($scope | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
 Write-Host "Confirmed. Wrote confirmedScope = $hash" -ForegroundColor Green
