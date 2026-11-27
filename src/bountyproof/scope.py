@@ -23,7 +23,13 @@ from pathlib import Path
 from bountyproof.assets import hook_path
 
 SCOPE_LISTS = ("inScope", "outOfScope", "denyUnlisted")
-RULE_LISTS = {"inScope": "in", "outOfScope": "out", "denyUnlisted": "out", "allowHosts": "allow", "hunterInfra": "allow"}
+RULE_LISTS = {
+    "inScope": "in",
+    "outOfScope": "out",
+    "denyUnlisted": "out",
+    "allowHosts": "allow",
+    "hunterInfra": "allow",
+}
 BOOL_FIELDS = ("enforce", "requireConfirm", "confirmStateChanging")
 STRING_FIELDS = ("uaTag", "confirmedScope")
 DEFAULT_ALLOW = (
@@ -77,9 +83,13 @@ def _from_authority(auth: str) -> Host:
     if not auth:
         return Host(problem="there is no host")
     if _NOT_PRINTABLE_ASCII.search(auth):
-        return Host(problem="the host has a non-ASCII, space or control character (write an IDN host in punycode, xn--...)")
+        return Host(
+            problem="the host has a non-ASCII, space or control character (write an IDN host in punycode, xn--...)"
+        )
     if "$" in auth:
-        return Host(problem="the host is a shell variable or a placeholder: write it literally so the guard can check it")
+        return Host(
+            problem="the host is a shell variable or a placeholder: write it literally so the guard can check it"
+        )
     if re.search(r"[{}]", auth):
         return Host(problem="a curl glob in the host expands to hosts the guard never sees")
     if re.search(r"[\\%|^`<>\"']", auth):
@@ -299,7 +309,7 @@ class Canon:
     problem: str | None = None
 
 
-def _is_public_suffix(host: str) -> bool:
+def is_public_suffix(host: str) -> bool:
     labels = host.split(".")
     return len(labels) == 1 or (len(labels) == 2 and labels[0] in _SLD and len(labels[1]) == 2)
 
@@ -347,11 +357,13 @@ def _wild_rule(s: str, side: str) -> Canon:
         base = _host_name(s[2:])
         if base.problem or _is_ip(base.host or ""):
             return Canon(problem="a wildcard needs a domain after *.")
-        if side != "out" and _is_public_suffix(base.host):
+        if side != "out" and is_public_suffix(base.host):
             return Canon(problem=f"*.{base.host} would cover a whole TLD or public suffix")
         return Canon(Rule("wild", base.host))
     if side != "out":
-        return Canon(problem="a * anywhere but the start (*.domain) can only exclude: put it in outOfScope or denyUnlisted")
+        return Canon(
+            problem="a * anywhere but the start (*.domain) can only exclude: put it in outOfScope or denyUnlisted"
+        )
     if not re.fullmatch(r"[a-z0-9.*_-]+", s) or not re.search(r"[a-z0-9]", s.replace("*", "")):
         return Canon(problem="a pattern that would match every host")
     return Canon(Rule("glob", s))
