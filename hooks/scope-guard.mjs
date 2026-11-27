@@ -511,6 +511,7 @@ const NMAP_VALUE = new Set(['p', 'oN', 'oX', 'oG', 'oA', 'oS', 'e', 'D', 'S', 'g
   'min-parallelism', 'version-intensity', 'mtu', 'spoof-mac', 'proxies', 'w', 'i', 'c', 'q', 'x', 'X']);
 const NC_VALUE = new Set('pswecqiIOTxX'.split(''));
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ksh', 'pwsh', 'powershell']);
 const HTTP_CLIENTS = new Set(['curl', 'wget', 'invoke-webrequest', 'iwr', 'invoke-restmethod', 'irm']);
 const CHROME = 'mcp__claude-in-chrome__';
 const CHROME_PRESS = new Set(['left_click', 'double_click', 'triple_click', 'key']);
@@ -535,9 +536,32 @@ function redact(s) {
 // Shell-ish tokenizer. Bash escapes with \, PowerShell with ` (backslash is a path separator there).
 // Unquoted | ; & ( ) newline split segments (`piped` marks one fed by a single |); > and < mark the
 // next token as a redirect target, and an fd number glued to them (2>, *>) is dropped.
-function segments(cmd, ps) {
+// $(...) and bash `...` are commands of their own: each becomes its own segments, and the token that
+// held it gets "$(...)" in its place (a host made of it can't be read, so it's denied).
+// A heredoc body (<<WORD ... WORD) goes to the segment that reads it (`heredocs`), not into the
+// command: `cat > notes.md <<'EOF'` is text, `bash <<EOF` and `python - <<EOF` are checked by the caller.
+// A PowerShell here-string (@'...'@) is one token.
+function closingParen(cmd, open) {
+  let depth = 0, q = null;
+  for (let j = open; j < cmd.length; j++) {
+    const c = cmd[j];
+    if (q) {
+      if (c === q) q = null;
+      else if (c === '\\' && q === '"') j++;
+      continue;
+    }
+    if (c === '"' || c === "'") q = c;
+    else if (c === '(') depth++;
+    else if (c === ')' && --depth === 0) return j;
+  }
+  return -1;
+}
+
+function segments(cmd, ps, depth = 0) {
   const esc = ps ? '`' : '\\';
-  const segs = [{ tokens: [], redirects: [], piped: false }];
+  const segs = [{ tokens: [], redirects: [], heredocs: [], piped: false }];
+  const subs = [];
+  const pending = []; // heredocs whose body starts at the next newline
   let cur = '', quote = null, has = false, redirect = false;
   const push = () => {
     if (has) {
@@ -549,31 +573,94 @@ function segments(cmd, ps) {
   };
   for (let i = 0; i < cmd.length; i++) {
     const c = cmd[i];
+    if (quote !== "'" && c === '$' && cmd[i + 1] === '(') {
+      const end = closingParen(cmd, i + 1);
+      if (end > 0) { subs.push(cmd.slice(i + 2, end)); cur += '$(...)'; has = true; i = end; continue; }
+    }
+    if (!ps && quote !== "'" && c === '`') {
+      const end = cmd.indexOf('`', i + 1);
+      if (end > 0) { subs.push(cmd.slice(i + 1, end)); cur += '$(...)'; has = true; i = end; continue; }
+    }
     if (quote) {
       if (c === quote) quote = null;
       else if (c === esc && quote === '"' && i + 1 < cmd.length) cur += cmd[++i];
       else cur += c;
       continue;
     }
+    if (ps && c === '@' && (cmd[i + 1] === "'" || cmd[i + 1] === '"') && /^\r?\n/.test(cmd.slice(i + 2))) {
+      const close = cmd.indexOf(`\n${cmd[i + 1]}@`, i + 2);
+      if (close > 0) { cur += cmd.slice(i + 2, close).replace(/^\r?\n/, ''); has = true; i = close + 2; continue; }
+    }
     if (c === '"' || c === "'") { quote = c; has = true; continue; }
     if (c === esc && i + 1 < cmd.length && cmd[i + 1] !== '\n') { cur += cmd[++i]; has = true; continue; }
     if (/\s/.test(c) && c !== '\n') { push(); continue; }
+    if (!ps && c === '<' && cmd[i + 1] === '<' && cmd[i + 2] !== '<') {
+      const m = /^<<(-?)[ \t]*(?:'([^'\n]*)'|"([^"\n]*)"|\\?([^\s;&|<>()]+))/.exec(cmd.slice(i));
+      if (m) {
+        push();
+        pending.push({ word: m[2] ?? m[3] ?? m[4], tabs: m[1] === '-', seg: segs[segs.length - 1] });
+        i += m[0].length - 1;
+        continue;
+      }
+    }
+    if (c === '\n' && pending.length) {
+      push();
+      let at = i + 1;
+      for (const h of pending.splice(0)) {
+        const lines = [];
+        while (at <= cmd.length) {
+          const nl = cmd.indexOf('\n', at);
+          const line = cmd.slice(at, nl < 0 ? cmd.length : nl).replace(/\r$/, '');
+          at = nl < 0 ? cmd.length + 1 : nl + 1;
+          if ((h.tabs ? line.replace(/^\t+/, '') : line) === h.word) break;
+          lines.push(line);
+        }
+        h.seg.heredocs.push(lines.join('\n'));
+      }
+      i = at - 1; // the loop's i++ moves to the line after the last terminator
+      segs.push({ tokens: [], redirects: [], heredocs: [], piped: false });
+      continue;
+    }
     if ('|;&()\n'.includes(c)) {
       push();
-      segs.push({ tokens: [], redirects: [], piped: c === '|' && cmd[i + 1] !== '|' && cmd[i - 1] !== '|' });
+      segs.push({ tokens: [], redirects: [], heredocs: [], piped: c === '|' && cmd[i + 1] !== '|' && cmd[i - 1] !== '|' });
       continue;
     }
     if (c === '>' || c === '<') {
       if (has && /^(?:\d+|\*)$/.test(cur)) { cur = ''; has = false; }
       push();
       redirect = true;
-      while (cmd[i + 1] === '>' || cmd[i + 1] === '&') i++;
+      while (cmd[i + 1] === '>' || cmd[i + 1] === '&' || cmd[i + 1] === '<') i++;
       continue;
     }
     cur += c; has = true;
   }
   push();
-  return segs.filter(s => s.tokens.length || s.redirects.length);
+  for (const h of pending) h.seg.heredocs.push(''); // a heredoc with no body: nothing to read
+  const out = segs.filter(s => s.tokens.length || s.redirects.length || s.heredocs.length);
+  if (depth < 4) for (const sub of subs) out.push(...segments(sub, ps, depth + 1));
+  return out;
+}
+
+// Variables assigned in the same command, so `B=http://127.0.0.1:8811; curl $B/api` is checked as the
+// URL it is. Only a literal value counts (no $, backticks or $(...)), only an assignment that is a
+// statement of its own, and only after it. Anything else stays unexpanded, and an unexpanded
+// variable in a host is denied.
+const BASH_ASSIGN = /(?:^|[;\n{(]|&&|\|\|)[ \t]*(?:(?:export|local|readonly)[ \t]+|declare[ \t]+(?:-[a-zA-Z]+[ \t]+)?)?([A-Za-z_]\w*)=(?:"([^"$`\\]*)"|'([^']*)'|([^\s;|&()$`"'\\]*))[ \t]*(?=$|[;\n})]|&&|\|\|)/g;
+const PS_ASSIGN = /(?:^|[;\n{(]|&&|\|\|)[ \t]*\$(?:env:)?([A-Za-z_]\w*)[ \t]*=[ \t]*(?:"([^"$`]*)"|'([^']*)'|([^\s;|&()$`"']+))[ \t]*(?=$|[;\n})]|&&|\|\|)/gi;
+function expandVars(cmd, ps) {
+  const assigns = [...cmd.matchAll(ps ? PS_ASSIGN : BASH_ASSIGN)].map(m => ({
+    name: ps ? m[1].toLowerCase() : m[1], value: m[2] ?? m[3] ?? m[4] ?? '', end: m.index + m[0].length,
+  }));
+  if (!assigns.length) return cmd;
+  const ref = ps ? /\$(?:env:)?\{?([A-Za-z_]\w*)\}?/gi : /\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))/g;
+  return cmd.replace(ref, (whole, ...args) => {
+    const offset = args[args.length - 2];
+    const name = ps ? args[0].toLowerCase() : args[0] || args[1];
+    let value = null;
+    for (const x of assigns) if (x.name === name && x.end <= offset) value = x.value;
+    return value === null ? whole : value;
+  });
 }
 
 function toolName(tok) {
@@ -791,9 +878,14 @@ function parseScanner(tool, args, piped, cwd) {
 }
 
 // Inline python / node: the guard sees code, not runtime values, so a host there is only a mention.
+// Code that can reach the network: an HTTP or socket library, a browser driver, or a subprocess.
+const SENDS = /\b(?:requests|httpx|urllib\d?|urlopen|http\.client|aiohttp|curl_cffi|pycurl|socket|websockets?|fetch|axios|got|undici|node:https?|https?\.(?:get|request)|playwright|puppeteer|selenium|subprocess|os\.system|popen|child_process|exec(?:Sync)?)\b/i;
+
 function parseCode(tool, args) {
   const r = newReq(tool);
   const text = args.join(' ');
+  // code that only reads or writes files (notes, reports) names hosts as text, not as destinations
+  if (!SENDS.test(text)) return r;
   r.mentions.push(...(text.match(URL_RE) || []));
   for (const m of text.matchAll(HOST_RE)) r.mentions.push(m[1]);
   const ua = /(?:--user-agent|-U|-A|User-Agent:|['"]User-Agent['"]\s*:)\s*=?\s*("[^"]*"|'[^']*'|[^\s]+)/i.exec(text);
@@ -969,10 +1061,30 @@ function requestsOf(input, cwd) {
   const raw = String(ti.command || '');
   if (!NET_HINT.test(raw)) return { reqs: [], raw };
   const reqs = [];
-  for (const seg of segments(raw, tname === 'PowerShell')) {
+  const ps = tname === 'PowerShell';
+  const queue = segments(expandVars(raw, ps), ps).map(seg => ({ seg, ps, depth: 0 }));
+  while (queue.length) {
+    const { seg, ps: segPs, depth } = queue.shift();
+    let lead = 0;
+    while (lead < seg.tokens.length && (/^[A-Za-z_]\w*=/.test(seg.tokens[lead]) || ['sudo', 'env', 'exec', 'time', 'nohup', '&', '.'].includes(seg.tokens[lead]))) lead++;
+    const first = seg.tokens[lead] ? toolName(seg.tokens[lead]) : '';
+    // a shell runs its heredoc or its -c string: those are commands too
+    if (SHELLS.has(first) && depth < 3) {
+      const innerPs = first === 'pwsh' || first === 'powershell';
+      const scripts = [...seg.heredocs];
+      const c = seg.tokens.findIndex((t, k) => k > lead && /^-(?:c|command)$/i.test(t));
+      if (c > 0 && seg.tokens[c + 1] !== undefined) scripts.push(seg.tokens[c + 1]);
+      for (const script of scripts) {
+        for (const inner of segments(expandVars(script, innerPs), innerPs)) queue.push({ seg: inner, ps: innerPs, depth: depth + 1 });
+      }
+      continue;
+    }
     const idx = seg.tokens.findIndex(t => NET_TOOLS.has(toolName(t)));
     if (idx === -1) continue;
-    reqs.push(parseTool(toolName(seg.tokens[idx]), seg.tokens.slice(idx + 1), seg.piped, cwd));
+    const tool = toolName(seg.tokens[idx]);
+    const args = seg.tokens.slice(idx + 1);
+    if (tool === 'python' || tool === 'node') args.push(...seg.heredocs); // code fed on stdin
+    reqs.push(parseTool(tool, args, seg.piped, cwd));
   }
   return { reqs, raw };
 }

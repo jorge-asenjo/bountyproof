@@ -133,6 +133,21 @@ test('host: a URL the guard cannot read is not a URL it can ignore', () => {
   assert.equal(decision(curl('https://app.example.com/ -o out.json --keepalive-time 60')), 'allow');
 });
 
+test('host: a variable assigned in the same command is checked as the URL it holds', () => {
+  // how agents really write it: the base URL in a variable, then many requests
+  assert.equal(decision(bash(`U="x ${UA}"; B=https://app.example.com
+curl -A "$U" $B/api/me; curl -A "$U" "\${B}/api/orders"`)), 'allow');
+  assert.equal(decision(bash(`B=https://admin.example.com && curl -A "x ${UA}" $B/`)), 'deny');
+  assert.equal(decision(bash(`U="-A x-${UA}"; B=http://203.0.113.5; for p in a b; do curl -s $U $B/api/$p; done`)), 'allow');
+  assert.equal(decision(ps(`$B = "https://app.example.com"; curl.exe -A "x ${UA}" "$B/api/me"`)), 'allow');
+  assert.equal(decision(ps(`$b='https://admin.example.com'; curl.exe -A "x ${UA}" "$B/x"`)), 'deny');
+  // what the guard can't see stays denied: command output, a variable used before it is set, the environment
+  assert.equal(decision(bash(`B=$(cat base.txt); curl -A "x ${UA}" $B/api`)), 'deny');
+  assert.equal(decision(bash(`curl -A "x ${UA}" $B/api; B=https://app.example.com`)), 'deny');
+  assert.equal(decision(bash(`B=https://app.example.com curl -A "x ${UA}" $B/api`)), 'deny'); // a prefix assignment isn't seen by $B
+  assert.equal(decision(bash(`run(){ curl -A "x ${UA}" "$@"; }; run https://app.example.com/`)), 'deny');
+});
+
 test('host: --connect-to and --resolve send the connection somewhere else', () => {
   assert.equal(decision(curl('--connect-to app.example.com:443:admin.example.com:443 https://app.example.com/')), 'deny');
   assert.equal(decision(curl('--resolve app.example.com:443:203.0.113.9 https://app.example.com/')), 'deny');
@@ -285,4 +300,26 @@ test('every session and subagent starts with the scope, out-of-scope list first'
   // nothing to say before Phase 0, or outside a workspace
   assert.equal(run({ hook_event_name: 'SessionStart', source: 'startup' }, { ...BASE, inScope: [] }).out.hookSpecificOutput, undefined);
   assert.equal(run({ hook_event_name: 'SessionStart', source: 'startup' }, null).out.hookSpecificOutput, undefined);
+});
+
+test('commands inside commands: heredocs, $(...) and bash -c', () => {
+  // text written to a file is not a command, even with curl examples in it
+  const report = "cat > reports/H-001.md <<'EOF'\n# H-001\ncurl -s https://admin.example.com/ # the excluded host, as text\ncurl\nEOF\necho done";
+  assert.equal(decision(bash(report)), 'allow');
+  // a shell or an interpreter reading a heredoc runs it
+  assert.equal(decision(bash("bash <<'EOF'\ncurl -A x https://admin.example.com/\nEOF")), 'deny');
+  assert.equal(decision(bash("python - <<'EOF'\nimport requests; requests.get('https://admin.example.com/')\nEOF")), 'deny');
+  assert.equal(decision(bash(`bash -c "curl -A 'x ${UA}' https://admin.example.com/"`)), 'deny');
+  assert.equal(decision(ps(`pwsh -c "curl.exe -A 'x ${UA}' https://admin.example.com/"`)), 'deny');
+  // a command substitution is a command, and its output is not a host the guard can read
+  assert.equal(decision(bash('echo $(curl -s https://admin.example.com/)')), 'deny');
+  const token = `TA=$(python -c "import json;print(json.load(open('a.json'))['token'])")`;
+  assert.equal(decision(bash(`${token}; curl -A "x ${UA}" -H "Authorization: Bearer $TA" https://app.example.com/api`)), 'allow');
+  assert.equal(decision(bash(`curl -A "x ${UA}" "https://$(cat host.txt)/api"`)), 'deny');
+  // a PowerShell here-string is one argument
+  const noAsk = { ...BASE, confirmStateChanging: false };
+  assert.equal(decision(ps(`$body = @'\n{"url": "https://admin.example.com/"}\n'@\ncurl.exe -A "x ${UA}" -d $body https://app.example.com/api`), noAsk), 'allow');
+  // code that only edits notes names hosts as text; code that can send is checked
+  assert.equal(decision(bash("python - <<'EOF'\nopen('notes/case-file.md','a').write('admin.example.com is out, app.example.com done')\nEOF")), 'allow');
+  assert.equal(decision(bash(`python -c "import urllib.request as u; u.urlopen('https://admin.example.com/')"`)), 'deny');
 });
