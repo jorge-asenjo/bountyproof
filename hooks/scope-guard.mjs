@@ -888,6 +888,7 @@ const PROTECTED = [
 function isProtected(p, cwd) {
   if (!p) return false;
   const s = String(p);
+  if (/\s/.test(s.trim())) return false; // a message or a code string, not a path
   if (/(?:^|[\\/])(?:scope\.json|scope-guard\.mjs)$/i.test(s)) return true;
   if (/\.claude[\\/]+settings(?:\.local)?\.json$/i.test(s)) return true;
   const abs = norm(path.resolve(cwd, s));
