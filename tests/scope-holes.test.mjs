@@ -323,3 +323,13 @@ test('commands inside commands: heredocs, $(...) and bash -c', () => {
   assert.equal(decision(bash("python - <<'EOF'\nopen('notes/case-file.md','a').write('admin.example.com is out, app.example.com done')\nEOF")), 'allow');
   assert.equal(decision(bash(`python -c "import urllib.request as u; u.urlopen('https://admin.example.com/')"`)), 'deny');
 });
+
+test('inline code: prose about requests is not a request', () => {
+  const note = "python - <<'EOF'\nopen('notes/case-file.md','a').write('The importer fetches the URL; requests to http://127.0.0.1:9/x need the socket fixed')\nEOF";
+  assert.equal(decision(bash(note)), 'allow');
+  for (const code of ["import requests; requests.get('https://admin.example.com/')", "from urllib.request import urlopen; urlopen('https://admin.example.com/')",
+    "import subprocess; subprocess.run(['curl', 'https://admin.example.com/'])"]) {
+    assert.equal(decision(bash(`python -c "${code}"`)), 'deny', code);
+  }
+  assert.equal(decision(bash(`node -e "fetch('https://admin.example.com/')"`)), 'deny');
+});

@@ -878,8 +878,16 @@ function parseScanner(tool, args, piped, cwd) {
 }
 
 // Inline python / node: the guard sees code, not runtime values, so a host there is only a mention.
-// Code that can reach the network: an HTTP or socket library, a browser driver, or a subprocess.
-const SENDS = /\b(?:requests|httpx|urllib\d?|urlopen|http\.client|aiohttp|curl_cffi|pycurl|socket|websockets?|fetch|axios|got|undici|node:https?|https?\.(?:get|request)|playwright|puppeteer|selenium|subprocess|os\.system|popen|child_process|exec(?:Sync)?)\b/i;
+// Code that can reach the network: a call into an HTTP or socket library, a browser driver or a
+// subprocess, written as code (a name followed by . or ( or imported), so prose that says "requests"
+// or "fetch" in a note being written doesn't count.
+const SENDS = new RegExp([
+  String.raw`\b(?:requests|httpx|aiohttp|urllib\d?|http\.client|pycurl|curl_cffi|socket|websockets?|subprocess|axios|undici|child_process|playwright|puppeteer|selenium)\s*[.(]`,
+  String.raw`\b(?:urlopen|fetch|got|popen|system|execSync|spawnSync|spawn|exec)\s*\(`,
+  String.raw`\bimport\s+(?:requests|httpx|aiohttp|urllib|socket|subprocess|websockets)\b`,
+  String.raw`\bfrom\s+(?:requests|httpx|aiohttp|urllib|socket|subprocess|websockets)\b`,
+  String.raw`\b(?:require|import)\s*\(\s*['"](?:node:)?(?:https?|net|child_process|axios|node-fetch|undici)['"]`,
+].join('|'), 'i');
 
 function parseCode(tool, args) {
   const r = newReq(tool);

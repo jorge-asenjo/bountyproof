@@ -16,6 +16,7 @@ runs. TP = controls it let through, over controls × runs.
 | Date | Label | Plugin | Model | Runs | FP in traps | TP in controls | Leads → validated → passed | Turns | Tokens | Min |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-25 | main baseline | `main` 862eee8 | `claude-sonnet-5-5` | 3/3 | 0/48 (0%) | 7/12 (58%) | 3 → 2 → 2 | 22 | 75k / 20k / 872k | 2.9 |
+| 2026-11-27 | 02 scope guard | `worktree` fb6d374 | `claude-sonnet-5-5` | 3/3 | 0/48 (0%) | 6/12 (50%) | 3 → 2 → 1 | 36 | 143k / 40k / 1.9M | 4.8 |
 
 ## Juice Shop
 
