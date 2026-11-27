@@ -174,7 +174,7 @@ def test_bugcrowd_intigriti_and_yeswehack_records():
 TEXT = """Acme program
 
 Keep automated scanning under 5 requests per second.
-Use your @wearehackerone.com alias for test accounts.
+Use your platform email alias for test accounts.
 
 In Scope (3)
 | Type | Asset | Max severity |

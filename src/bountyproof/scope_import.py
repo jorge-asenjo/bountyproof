@@ -664,7 +664,7 @@ _CONDUCT = [
         ),
         "required header",
     ),
-    (re.compile(r"@(?:bugcrowdninja\.com|wearehackerone\.com|intigriti\.me|yeswehack\.ninja)\b", re.I), "test account"),
+    (re.compile(r"\b(?:test|testing|researcher)\s+accounts?\b|\b(?:email|platform)\s+alias\b", re.I), "test account"),
     (re.compile(r"\b(?:denial[- ]of[- ]service|DoS|DDoS)\b", re.I), "no DoS"),
 ]
 
