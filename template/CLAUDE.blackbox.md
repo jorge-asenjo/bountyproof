@@ -66,8 +66,11 @@ The hard rules below are program rules, not approvals: they always apply.
 ## Guardrails (automated)
 - **`scope-guard` hook** (`.claude/hooks/scope-guard.mjs`, before every Bash/PowerShell command and
   every Playwright or Claude in Chrome navigation): out-of-scope host → blocked; in-scope request without the UA tag or
-  required headers → blocked; host not in `notes/scope.json` → blocked (add it to allowHosts,
-  hunterInfra or inScope, or drop it); state-changing request → asks only if `confirmStateChanging`
+  required headers → blocked; host not in `notes/scope.json` → blocked (ask the human to add it to
+  allowHosts, hunterInfra or inScope, or drop it: once the scope is live, any change to it asks the
+  human); a host the guard can't read for sure (a variable, a curl glob, a list in a pipe) → blocked;
+  following redirects from the target (`curl -L`) → blocked, so request each Location explicitly;
+  state-changing request → asks only if `confirmStateChanging`
   is true; with `requireConfirm: true` (the default here), all live testing waits for the human to
   run `bountyproof scope confirm`, which the hook blocks you from running.
   Every checked request goes to `notes/egress-log.jsonl` (secrets redacted). The hook is inactive
