@@ -806,6 +806,7 @@ class Result:
     scope: dict
     imported_in: list[str]
     imported_out: list[str]
+    imported_unlisted: list[str]
     kept_in: list[str]
     kept_out: list[str]
     review: list[dict]
@@ -819,19 +820,48 @@ def _strings(v: object) -> list[str]:
     return [x for x in v if isinstance(x, str)] if isinstance(v, list) else []
 
 
+def _covers(deny: scope.Rule, rule: scope.Rule) -> bool:
+    """True when the deny wildcard/pattern ``deny`` would swallow hosts that ``rule`` puts in scope."""
+    if rule.kind in ("host", "ip"):
+        return scope.rule_matches(deny, rule.value)
+    if rule.kind == "wild":
+        return scope.rule_matches(deny, f"zz-probe.{rule.value}")
+    return False
+
+
+def _split_unlisted(imp_in: list[str], imp_out: list[str]) -> tuple[list[str], list[str]]:
+    """Programs often list hosts in scope and then ``*.example.com`` out of scope, meaning everything
+    else under it. An out-of-scope rule always wins in the guard, so that wildcard would deny the
+    program's own hosts: it goes to denyUnlisted instead (unlisted hosts under it are out of scope,
+    the listed ones stay in). An exact excluded host stays in outOfScope and wins over everything."""
+    in_rules = [c.rule for c in (scope.canon_rule(r, "in") for r in imp_in) if c.rule]
+    out, unlisted = [], []
+    for text in imp_out:
+        rule = scope.canon_rule(text, "out").rule
+        wide = rule is not None and rule.kind in ("wild", "glob")
+        (unlisted if wide and any(_covers(rule, r) for r in in_rules) else out).append(text)
+    return out, unlisted
+
+
 def apply(current: dict, p: Program, *, whitebox: bool = False, today: str | None = None) -> Result:
     """``current`` (the workspace's scope.json) refreshed with ``p``. Rules the last import wrote are
     replaced; rules written by hand are kept."""
     imp_in, imp_out = p.rules("in"), p.rules("out")
     if whitebox:  # lab only: every program asset is off limits
-        imp_out = list(dict.fromkeys(imp_in + imp_out))
-        imp_in = []
+        imp_out, imp_in, imp_unlisted = list(dict.fromkeys(imp_in + imp_out)), [], []
+    else:
+        imp_out, imp_unlisted = _split_unlisted(imp_in, imp_out)
     prev = current.get("_import") if isinstance(current.get("_import"), dict) else {}
-    hand_in = [x for x in _strings(current.get("inScope")) if x not in set(_strings(prev.get("inScope")))]
-    hand_out = [x for x in _strings(current.get("outOfScope")) if x not in set(_strings(prev.get("outOfScope")))]
+
+    def hand(key: str) -> list[str]:
+        before = set(_strings(prev.get(key)))
+        return [x for x in _strings(current.get(key)) if x not in before]
+
+    hand_in, hand_out, hand_unlisted = hand("inScope"), hand("outOfScope"), hand("denyUnlisted")
     new = dict(current)
     new["inScope"] = list(dict.fromkeys(imp_in + hand_in))
     new["outOfScope"] = list(dict.fromkeys(imp_out + hand_out))
+    new["denyUnlisted"] = list(dict.fromkeys(imp_unlisted + hand_unlisted))
     new["needsReview"] = p.review()
     new["_needsReview_note"] = (
         "Listed by the program but NOT rules: the guard can't enforce them as written. Read "
@@ -846,23 +876,24 @@ def apply(current: dict, p: Program, *, whitebox: bool = False, today: str | Non
         "mode": "whitebox" if whitebox else "blackbox",
         "inScope": imp_in,
         "outOfScope": imp_out,
+        "denyUnlisted": imp_unlisted,
         "conduct": p.conduct,
         "exclusions": p.exclusions,
         "_note": "What `bountyproof scope import` wrote last. A re-import replaces these rules and keeps the rest.",
     }
     out_set = set(imp_out)
-    conflicts = [x for x in hand_in if x in out_set]
     return Result(
-        new,
-        imp_in,
-        imp_out,
-        hand_in,
-        hand_out,
-        new["needsReview"],
-        new["otherAssets"],
-        conflicts,
-        whitebox,
-        scope.scope_hash(new) != scope.scope_hash(current),
+        scope=new,
+        imported_in=imp_in,
+        imported_out=imp_out,
+        imported_unlisted=imp_unlisted,
+        kept_in=hand_in,
+        kept_out=hand_out,
+        review=new["needsReview"],
+        other=new["otherAssets"],
+        conflicts=[x for x in hand_in if x in out_set],
+        whitebox=whitebox,
+        changed=scope.scope_hash(new) != scope.scope_hash(current),
     )
 
 

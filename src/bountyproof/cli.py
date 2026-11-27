@@ -157,6 +157,12 @@ def cmd_scope_import(args: argparse.Namespace) -> int:
     else:
         print(f"  in scope       {_rules(res.imported_in)}  {_sample(res.imported_in)}".rstrip())
         print(f"  out of scope   {_rules(res.imported_out)}  {_sample(res.imported_out)}".rstrip())
+        if res.imported_unlisted:
+            print(f"  unlisted = out {_rules(res.imported_unlisted)}  {_sample(res.imported_unlisted)}")
+            print(
+                "                 (excluded wildcards over hosts the program lists in scope: everything else "
+                "under them is out, the listed hosts stay in)"
+            )
     if res.kept_in or res.kept_out:
         print(f"  kept by hand   {len(res.kept_in)} in scope, {len(res.kept_out)} out of scope")
     if res.review:
