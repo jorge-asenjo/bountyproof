@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from bountyproof import __version__, doctor, funnel, onboard, profile, radar, scope, workspace
+from bountyproof import __version__, doctor, funnel, onboard, profile, radar, scope, scope_import, workspace
 from bountyproof.assets import AssetsNotFound
 
 EXIT_DENY = 2
@@ -77,6 +77,17 @@ def cmd_scope_confirm(args: argparse.Namespace) -> int:
     print("Scope to confirm:")
     for key, label in (("inScope", "IN SCOPE"), ("outOfScope", "OUT OF SCOPE"), ("denyUnlisted", "DENY UNLISTED")):
         print(f"  {label:<14} {', '.join(map(str, data.get(key) or [])) or '-'}")
+    review = data.get("needsReview") if isinstance(data.get("needsReview"), list) else []
+    if review:
+        print(f"  NEEDS REVIEW   {len(review)} listed by the program but NOT rules (needsReview):")
+        for item in review[:15]:
+            print(f"    - {_review_line(item)}")
+    errors = scope.compile_scope(data).errors
+    if errors:
+        print("The guard can't enforce this file as written, so confirming it won't unblock anything:")
+        for err in errors[:10]:
+            print(f"  - {err}")
+        return 1
     if data.get("confirmedScope") == scope.scope_hash(data):
         print("Already confirmed: the scope hasn't changed since the last confirmation.")
         return 0
@@ -87,6 +98,100 @@ def cmd_scope_confirm(args: argparse.Namespace) -> int:
             return 1
     digest = scope.confirm(scope_file, data)
     print(f"Confirmed. confirmedScope = {digest}")
+    return 0
+
+
+def _review_line(item: object) -> str:
+    if not isinstance(item, dict):
+        return str(item)
+    side = "in" if item.get("side") == "in" else "out"
+    line = f"[{side}] {item.get('asset', '')}: {item.get('why', '')}"
+    return line + (f" (suggested rule: {item['suggest']})" if item.get("suggest") else "")
+
+
+def _rules(items: list[str]) -> str:
+    return f"{len(items)} rule{'' if len(items) == 1 else 's'}"
+
+
+def _sample(items: list[str], n: int = 6) -> str:
+    return ", ".join(items[:n]) + (f", ... (+{len(items) - n})" if len(items) > n else "")
+
+
+def cmd_scope_import(args: argparse.Namespace) -> int:
+    if bool(args.ref) == bool(args.text):
+        print(
+            "error: give one source: a program (h1:<handle>, bugcrowd:<handle>, intigriti:<company>/<handle>, "
+            "yeswehack:<id> or its URL), or --text FILE with the scope pasted from the program page",
+            file=sys.stderr,
+        )
+        return 2
+    ws = _find_workspace(Path.cwd())
+    scope_file = ws / "notes" / "scope.json"
+    current = scope.load(scope_file)
+    if not isinstance(current, dict):
+        raise scope.ScopeError(f"{scope_file} must be a JSON object: fix it before importing.")
+    try:
+        text = None
+        if args.text:
+            text = sys.stdin.read() if args.text == "-" else Path(args.text).read_text(encoding="utf-8")
+        program = scope_import.load_program(
+            args.ref,
+            text=text,
+            name=args.name,
+            data=args.data,
+            refresh=args.refresh,
+            log=lambda msg: print(msg, file=sys.stderr),
+        )
+    except (ValueError, LookupError, OSError, scope_import.ScopeImportError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    res = scope_import.apply(current, program, whitebox=scope_import.is_whitebox(ws))
+
+    title = f"{scope_import.PLATFORM_NAMES.get(program.platform, 'pasted text')} {program.handle}".strip()
+    print(
+        f"Scope of {title}{f' ({program.name})' if program.name and program.name != program.handle else ''}, "
+        f"from {program.source}:"
+    )
+    if res.whitebox:
+        print(f"  out of scope   {_rules(res.imported_out)} (white-box: every program asset; the lab is the target)")
+    else:
+        print(f"  in scope       {_rules(res.imported_in)}  {_sample(res.imported_in)}".rstrip())
+        print(f"  out of scope   {_rules(res.imported_out)}  {_sample(res.imported_out)}".rstrip())
+    if res.kept_in or res.kept_out:
+        print(f"  kept by hand   {len(res.kept_in)} in scope, {len(res.kept_out)} out of scope")
+    if res.review:
+        print(f"  needs review   {len(res.review)}, NOT rules until you write them yourself:")
+        for item in res.review[:12]:
+            print(f"    - {_review_line(item)}")
+        if len(res.review) > 12:
+            print(f"    ... and {len(res.review) - 12} more in notes/scope.json (needsReview)")
+    if res.other:
+        print(f"  other assets   {len(res.other)} (apps, source code, hardware: not hosts, listed in otherAssets)")
+    for name in res.conflicts:
+        print(f"warning: {name} is in inScope by hand, but the program lists it out of scope. Out of scope wins.")
+    if program.conduct or program.exclusions:
+        print("Found in the program text (copy what applies into notes/program-rules.md):")
+        for line in (program.conduct + [f"not eligible: {x}" for x in program.exclusions])[:15]:
+            print(f"  - {line}")
+    if not res.whitebox and not res.scope["inScope"]:
+        print(
+            "warning: no in-scope rule came out of this: the guard denies every target until hosts are added by hand."
+        )
+    errors = scope.compile_scope(res.scope).errors
+    for err in errors[:10]:
+        print(f"warning: notes/scope.json still has an entry the guard can't enforce: {err}")
+    if args.dry_run:
+        print("Dry run: nothing written.")
+        return 0
+    scope.save(scope_file, res.scope)
+    print(f"Wrote {scope_file}.")
+    if res.changed and current.get("requireConfirm") is True:
+        print(
+            "The scope changed, so live testing stays blocked until you check notes/scope.json against the "
+            "program page and run `bountyproof scope confirm` in your own terminal."
+        )
+    elif res.changed:
+        print("The scope changed. requireConfirm is off in this workspace, so the new rules apply now.")
     return 0
 
 
@@ -172,6 +277,18 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_scope_confirm)
     s = scope_sub.add_parser("hash", help="print the hash of the current scope")
     s.set_defaults(func=cmd_scope_hash)
+    s = scope_sub.add_parser("import", help="fill notes/scope.json from the program's published scope")
+    s.add_argument(
+        "ref",
+        nargs="?",
+        help="h1:<handle>, bugcrowd:<handle>, intigriti:<company>/<handle>, yeswehack:<id>, or the program URL",
+    )
+    s.add_argument("--text", metavar="FILE", help="the scope pasted from the program page into a file ('-' = stdin)")
+    s.add_argument("--name", help="the program's name, with --text")
+    s.add_argument("--data", metavar="FILE", help="a bounty-targets-data dump on disk instead of downloading it")
+    s.add_argument("--refresh", action="store_true", help="download the dump again even if the cached copy is fresh")
+    s.add_argument("--dry-run", action="store_true", help="show the result without writing it")
+    s.set_defaults(func=cmd_scope_import)
 
     p = sub.add_parser("funnel", help="show how many hypotheses survived each gate")
     p.add_argument("workspace", nargs="?", default=".")
