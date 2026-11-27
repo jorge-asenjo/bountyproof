@@ -1,11 +1,11 @@
 {
-  "_comment": "Machine-readable scope for .claude/hooks/scope-guard.mjs. FILL IN PHASE 0 from notes/program-rules.md. Until inScope has at least one entry the guard is inactive. Patterns: exact host ('api.acme.com'), any-depth subdomain wildcard ('*.acme.com' — does NOT include the apex, list it too), or IPv4 CIDR ('203.0.113.0/24'). outOfScope always wins over inScope. WHITE-BOX: inScope = the lab hosts (localhost is already allowed), and put the program's production domains in outOfScope (lab-only rule).",
+  "_comment": "Machine-readable scope for .claude/hooks/scope-guard.mjs. FILL IN PHASE 0: start with `bountyproof scope import <program URL>` (or --text <file> with the scope pasted from the program page), then check it against notes/program-rules.md. Until inScope has at least one entry the guard is inactive. Patterns: exact host ('api.acme.com' is only that host, not its subdomains), any-depth subdomain wildcard ('*.acme.com' does NOT include the apex: list it too), IP address or CIDR, IPv4 or IPv6 ('203.0.113.0/24'). outOfScope and denyUnlisted also take a * in the middle ('legacy-*.acme.com'). Write IDN hosts in punycode (xn--...). outOfScope always wins over inScope. An entry the guard can't enforce exactly (free text, a TLD wildcard, a Unicode host) makes the file invalid, and every network command is blocked until it's fixed. WHITE-BOX: inScope = the lab hosts (localhost is already allowed), and put the program's production domains in outOfScope (lab-only rule; `scope import` does this for you).",
   "enforce": true,
   "inScope": [],
   "outOfScope": [],
   "_outOfScope_note": "Include registration-only hosts (used to create accounts, not to test), sister brands, third-party SaaS the target uses, and staging hosts the program didn't list.",
   "denyUnlisted": [],
-  "_denyUnlisted_note": "Domains whose UNLISTED hosts are out of scope, e.g. ['acme.com', '*.acme.com'] when the program says 'any acme.com host not listed is OOS'. Unlike outOfScope, it doesn't override inScope entries. Paths aren't checked: a host-level scope like 'acme.com/portal' must be respected by hand.",
+  "_denyUnlisted_note": "Domains whose UNLISTED hosts are out of scope, e.g. ['acme.com', '*.acme.com'] when the program says 'any acme.com host not listed is OOS', or lists hosts in scope and then '*.acme.com' out of scope. Unlike outOfScope, it doesn't override inScope entries. Paths aren't checked: a host-level scope like 'acme.com/portal' must be respected by hand.",
   "uaTag": "",
   "_uaTag_note": "Exact string every curl/iwr to an in-scope host must carry (e.g. 'BugBounty-yourhandle'). Leave empty if the program doesn't require one.",
   "requiredHeaders": [],

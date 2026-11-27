@@ -87,7 +87,13 @@ Mandatory before any hunting.
     enforces on every network command and browser navigation (out-of-scope host → blocked, missing
     UA tag → blocked, unknown host → blocked, optional confirmation for state-changing requests;
     everything logged to `notes/egress-log.jsonl`).
-    - `inScope`: exact hosts and `*.domain` wildcards (list the apex separately), IPv4 CIDRs.
+    - **Start with the import:** `bountyproof scope import <program URL>` reads the program's
+      published scope (public programs on HackerOne, Bugcrowd, Intigriti and YesWeHack). For a
+      private program, save the scope lists from its page to a file and run
+      `bountyproof scope import --text <file>`. Only unambiguous hosts become rules; read every
+      `needsReview` entry and tell the human about them. Then complete the fields below by hand.
+    - `inScope`: exact hosts (only that host, not its subdomains) and `*.domain` wildcards (any
+      subdomain, not the apex: list it separately), IP addresses and CIDRs. IDN hosts in punycode.
     - `outOfScope`: the OOS list + registration-only hosts + sister brands + unlisted staging hosts.
     - `denyUnlisted`: when the program says "any `*.acme.com` host not listed is out of scope", put
       `acme.com` and `*.acme.com` here.
@@ -96,7 +102,8 @@ Mandatory before any hunting.
     - White-box: `inScope` = the lab hosts; the program's production domains go in `outOfScope`.
 
     Sanity-check it without sending anything: `bountyproof scope check "<in-scope URL>"` must allow,
-    and `bountyproof scope check "<OOS URL>"` must deny.
+    and `bountyproof scope check "<OOS URL>"` must deny. An entry the guard can't enforce exactly
+    makes the file invalid, and every network command stays blocked until it's fixed.
 
     **Black-box workspaces start with `requireConfirm: true`.** The hook blocks all live in-scope
     testing until the human reviews the scope against the program page and runs

@@ -42,7 +42,8 @@ production servers. Reporting is bounded by the program rules and scope (Phase 0
 - **`scope-guard` hook** (`.claude/hooks/scope-guard.mjs`): before every Bash/PowerShell network
   command and Playwright or Claude in Chrome navigation it checks `notes/scope.json`. In white-box, `inScope` = the lab
   hosts and the program's production domains go in `outOfScope`, so rule 1 is enforced by code:
-  production → blocked; unknown host → blocked. Checked requests are logged to
+  production → blocked; unknown host → blocked; redirects followed from the lab (`curl -L`) →
+  blocked. Checked requests are logged to
   `notes/egress-log.jsonl`. Never route around a block.
 - **Claude in Chrome** is the human's own Chrome, for the platform's report form only: the hook
   blocks it from in-scope hosts and asks the human before any click described as a submit.
