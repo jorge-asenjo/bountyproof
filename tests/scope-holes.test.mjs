@@ -262,6 +262,8 @@ test('the agent changing scope.json or the guard asks the human once the scope i
   assert.equal(decision(bash(`sed -i 's/"enforce": true/"enforce": false/' notes/scope.json`)), 'ask');
   assert.equal(decision(ps(`(Get-Content notes/scope.json) -replace 'true','false' | Set-Content notes/scope.json`)), 'ask');
   assert.equal(decision(bash('cat notes/scope.json')), 'allow');
+  assert.equal(decision(bash('git commit -qm "Update notes/scope.json after the import"')), 'allow');
+  assert.equal(decision(bash('cp /tmp/wider.json notes/scope.json')), 'ask');
   // Phase 0 fills it before the guard is live
   assert.equal(decision(edit('notes/scope.json'), { ...BASE, inScope: [] }), 'allow');
 });
