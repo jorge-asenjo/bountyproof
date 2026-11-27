@@ -28,6 +28,25 @@ license, and what we changed.
   really happened. The Juice Shop oracle grades every finding the chain lets through (confirmed,
   refuted or unmodeled) instead of single objectives.
 
+### Scope import and the scope guard (`src/bountyproof/scope_import.py`, `hooks/scope-guard.mjs`)
+
+- **Taken:** `cbh/scope_import.py`, ported to `bountyproof scope import`: the public
+  bounty-targets-data source, how each platform's assets are classified, the fail-closed review list,
+  the pasted-text mode, the conduct rules found in program text, and a re-import that keeps the rules
+  written by hand. Also the holes their scope fixes closed, each turned into a test here: deny rules
+  written with a port, a scheme or a trailing dot that matched nothing (#182), redirects out of scope
+  (#181), recon hosts that ended up in scope (#198), Unicode and punycode spellings of one host
+  (#224, CWE-176), a backslash in the URL authority (#247), out-of-scope hosts lost from pasted
+  program text (#235) and agents that weren't told the exclusions (#226). The last three were fixed
+  on 25-nov, after the commit read above.
+- **Changed:** it writes `notes/scope.json`. Every rule goes through the guard's own parser, which runs
+  the same way in Node (the hook) and Python (the CLI), checked against one shared corpus of cases. An
+  exact host is only that host, so no regex rules are needed. An excluded wildcard over hosts the
+  program lists in scope becomes `denyUnlisted`. White-box workspaces get every program asset out of
+  scope. The guard reads commands rather than its own fetcher, so the checks on bare hosts, IPv4 in
+  decimal or octal, curl globs, shell variables, redirect flags and target lists are new code, and a
+  non-ASCII host is denied outright instead of converted.
+
 The adapted parts carry this notice:
 
 ```text
