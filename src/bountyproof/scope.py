@@ -10,6 +10,7 @@ lowercased, de-duplicated and ordinal-sorted, joined, then SHA-256 hex.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -418,6 +419,7 @@ def canon_rule(rule: object, side: str = "in") -> Canon:
     return Canon(problem=h.problem) if h.problem else Canon(Rule("host", h.host))
 
 
+@functools.lru_cache(maxsize=4096)
 def _glob_re(pattern: str) -> re.Pattern[str]:
     return re.compile("^" + pattern.replace(".", r"\.").replace("*", "[a-z0-9._-]*") + "$")
 

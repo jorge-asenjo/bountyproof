@@ -429,3 +429,22 @@ def test_download_cache_and_fallback(tmp_path):
 
 def test_the_cache_lives_outside_the_workspace(bountyproof_home):
     assert si.cache_dir().is_relative_to(bountyproof_home)
+
+
+def test_an_excluded_wildcard_over_listed_hosts_means_everything_else():
+    """'In scope: app.example.com. Out of scope: *.example.com' means every OTHER example.com host."""
+    rec = {"handle": "acme", "targets": {
+        "in_scope": [h1("app.example.com", "URL"), h1("*.api.example.com", "WILDCARD")],
+        "out_of_scope": [h1("*.example.com", "WILDCARD", submit=False),
+                         h1("legacy.api.example.com", "URL", submit=False),
+                         h1("*.other.test", "WILDCARD", submit=False)]}}  # fmt: skip
+    res = si.apply({}, program(rec))
+    assert res.scope["denyUnlisted"] == ["*.example.com"]
+    assert res.scope["outOfScope"] == ["legacy.api.example.com", "*.other.test"]
+    c = scope.compile_scope(res.scope)
+    assert scope.classify("app.example.com", c) == "IN_SCOPE"
+    assert scope.classify("v1.api.example.com", c) == "IN_SCOPE"
+    assert scope.classify("legacy.api.example.com", c) == "OOS"  # an exact exclusion still wins
+    assert scope.classify("shop.example.com", c) == "OOS_UNLISTED"
+    again = si.apply(res.scope, program({**rec, "targets": {**rec["targets"], "out_of_scope": []}}))
+    assert again.scope["denyUnlisted"] == []  # imported, so a re-import refreshes it
