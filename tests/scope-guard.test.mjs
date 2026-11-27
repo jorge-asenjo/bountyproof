@@ -99,7 +99,8 @@ test('GraphQL queries are reads, mutations ask', () => {
 
 test('PowerShell Invoke-WebRequest is parsed', () => {
   assert.equal(decide(ps('Invoke-WebRequest -Uri https://admin.example.com/ -UserAgent "x BugBounty-tester"')).decision, 'deny');
-  assert.equal(decide(ps('iwr https://app.example.com/ -UserAgent "x BugBounty-tester"')).decision, 'allow');
+  // iwr follows redirects by default, so it needs -MaximumRedirection 0 toward the target
+  assert.equal(decide(ps('iwr https://app.example.com/ -UserAgent "x BugBounty-tester" -MaximumRedirection 0')).decision, 'allow');
 });
 
 test('Playwright navigation is checked (no UA requirement in the browser)', () => {
@@ -181,9 +182,11 @@ test('plugin copy steps aside when the workspace has its own hook', () => {
   assert.equal(decide(curl('https://admin.example.com/'), BASE, { ownHookCopy: true }).decision, 'allow');
 });
 
-test('malformed input fails open', () => {
+test('malformed input lets the call through and tells the human it was not checked', () => {
   const dir = workspace(BASE);
   const res = spawnSync(process.execPath, [HOOK], { input: '{not json', env: { ...process.env, CLAUDE_PROJECT_DIR: dir }, encoding: 'utf8' });
   assert.equal(res.status, 0);
-  assert.equal(res.stdout.trim(), '');
+  const out = JSON.parse(res.stdout);
+  assert.equal(out.hookSpecificOutput, undefined);
+  assert.match(out.systemMessage, /NOT checked/);
 });
